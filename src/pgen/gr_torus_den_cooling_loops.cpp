@@ -106,8 +106,7 @@ struct torus_pgen {
   bool prograde;                              // flag indicating disk is prograde (FM)
   Real r_edge, r_peak, l, rho_max;            // fixed torus parameters
   Real l_peak;                                // fixed torus parameters
-  Real c_param;                               // calculated chakrabarti parameter
-  Real n_param;                               // fixed or calculated chakrabarti parameter
+  Real c_param, n_param;                      // fixed disk parameters
   Real log_h_edge, log_h_peak;                // calculated torus parameters
   Real ptot_over_rho_peak, rho_peak;          // more calculated torus parameters
   Real r_outer_edge;                          // even more calculated torus parameters
@@ -119,15 +118,23 @@ struct torus_pgen {
   Real potential_r_pow;                       // set how vector potential scales
   Real potential_beta_min;                    // set how vector potential scales (cont.)
   Real potential_rho_pow;                     // set vector potential dependence on rho
+  int potential_loops;                        // set number of loops in vector potential
+  Real potential_edge;                        // set inner edge of vector potential loops
+  Real potential_outer_edge;                  // set outer edge of vector potential loops
 };
 
   torus_pgen torus;
 
 } // namespace
 
-// Prototypes for user-defined BCs and history functions
+// Prototypes for user-defined BCs, history and source functions 
 void NoInflowTorus(Mesh *pm);
 void TorusFluxes(HistoryData *pdata, Mesh *pm);
+void Cooling(Mesh *pm, const Real bdt);
+//set s_targ global
+
+__managed__ Real s_targ;
+//Real s_targ;
 
 //----------------------------------------------------------------------------------------
 //! \fn void ProblemGenerator::UserProblem()
@@ -146,6 +153,9 @@ void ProblemGenerator::UserProblem(ParameterInput *pin, const bool restart) {
 
   // User boundary function
   user_bcs_func = NoInflowTorus;
+
+  //User source function
+  user_srcs_func = Cooling;
 
   // capture variables for kernel
   auto &indcs = pmy_mesh_->mb_indcs;
@@ -222,13 +232,15 @@ void ProblemGenerator::UserProblem(ParameterInput *pin, const bool restart) {
   torus.rho_max = pin->GetReal("problem", "rho_max");
   torus.r_edge = pin->GetReal("problem", "r_edge");
   torus.r_peak = pin->GetReal("problem", "r_peak");
-  torus.n_param = pin->GetOrAddReal("problem", "n_param",0.0);
   torus.prograde = pin->GetOrAddBoolean("problem","prograde",true);
   torus.fm_torus = pin->GetOrAddBoolean("problem", "fm_torus", false);
   torus.chakrabarti_torus = pin->GetOrAddBoolean("problem", "chakrabarti_torus", false);
 
   // local parameters
   Real pert_amp = pin->GetOrAddReal("problem", "pert_amp", 0.0);
+
+  //set s_targ
+  s_targ = pin->GetReal("problem", "s_targ");
 
   // excision parameters
   torus.dexcise = coord.dexcise;
@@ -368,7 +380,7 @@ void ProblemGenerator::UserProblem(ParameterInput *pin, const bool restart) {
       auto rand_gen = rand_pool64.get_state(); // get random number state this thread
       perturbation = 2.0*pert_amp*(rand_gen.frand() - 0.5);
       rand_pool64.free_state(rand_gen);        // free state for use by other threads
-
+    
       // Calculate thermodynamic variables
       Real ptot_over_rho = gm1/trs.gamma_adi * (exp(log_h) - 1.0);
       rho = pow(ptot_over_rho, 1.0/gm1) / trs.rho_peak;
@@ -457,9 +469,12 @@ void ProblemGenerator::UserProblem(ParameterInput *pin, const bool restart) {
     //   MAD -> potential_r_pow = 3
     //          potential_falloff = 400
     //          potential_rho_pow = 1
-    torus.potential_falloff  = pin->GetOrAddReal("problem", "potential_falloff", 0.0);
-    torus.potential_r_pow    = pin->GetOrAddReal("problem", "potential_r_pow", 0.0);
-    torus.potential_rho_pow  = pin->GetOrAddReal("problem", "potential_rho_pow", 1.0);
+    torus.potential_falloff    = pin->GetOrAddReal("problem", "potential_falloff", 0.0);
+    torus.potential_r_pow      = pin->GetOrAddReal("problem", "potential_r_pow", 0.0);
+    torus.potential_rho_pow    = pin->GetOrAddReal("problem", "potential_rho_pow", 1.0);
+    torus.potential_loops      = pin->GetOrAddInteger("problem", "potential_loops", 0);
+    torus.potential_edge       = pin->GetOrAddReal("problem", "potential_edge", torus.r_edge);
+    torus.potential_outer_edge = pin->GetOrAddReal("problem", "potential_outer_edge", torus.r_outer_edge);
 
     // compute vector potential over all faces
     int ncells1 = indcs.nx1 + 2*(indcs.ng);
@@ -924,14 +939,10 @@ static Real CalculateT(struct torus_pgen pgen, Real rho, Real ptot_over_rho) {
 
 //----------------------------------------------------------------------------------------
 // Function for calculating c, n parameters controlling angular momentum profile
-// in Chakrabarti torus, where l = c * lambda^n. edited so that n can be pre-specified
-// such that the assumption of keplerian angular momentum at the inner edge is dropped
+// in Chakrabarti torus
 
 KOKKOS_INLINE_FUNCTION
 static void CalculateCN(struct torus_pgen pgen, Real *cparam, Real *nparam) {
-  Real n_input = pgen.n_param;
-  Real nn; // slope of angular momentum profile
-  Real cc; // constant of angular momentum profile
   Real l_edge = ((SQR(pgen.r_edge) + SQR(pgen.spin) - 2.0*pgen.spin*sqrt(pgen.r_edge))/
                  (sqrt(pgen.r_edge)*(pgen.r_edge - 2.0) + pgen.spin));
   Real l_peak = ((SQR(pgen.r_peak) + SQR(pgen.spin) - 2.0*pgen.spin*sqrt(pgen.r_peak))/
@@ -942,13 +953,8 @@ static void CalculateCN(struct torus_pgen pgen, Real *cparam, Real *nparam) {
   Real lambda_peak = sqrt((l_peak*(-2.0*pgen.spin*l_peak + SQR(pgen.r_peak)*pgen.r_peak
                                    + SQR(pgen.spin)*(2.0+pgen.r_peak)))/
                           (2.0*pgen.spin + l_peak*(pgen.r_peak - 2.0)));
-  if (n_input == 0.0) {
-    nn = log(l_peak/l_edge)/log(lambda_peak/lambda_edge);
-    cc = l_edge*pow(lambda_edge, -nn);
-  } else {
-    nn = n_input;
-    cc = l_peak*pow(lambda_peak, -nn);
-  }
+  Real nn = log(l_peak/l_edge)/log(lambda_peak/lambda_edge);
+  Real cc = l_edge*pow(lambda_edge, -nn);
   *cparam = cc;
   *nparam = nn;
   return;
@@ -1291,9 +1297,14 @@ static void CalculateVectorPotentialInTiltedTorus(struct torus_pgen pgen,
         if (pgen.potential_falloff != 0) {
           scaling_param *= exp(-r/pgen.potential_falloff);
         }
-        aphi_tilt = pow(rho/pgen.rho_max, pgen.potential_rho_pow)*scaling_param;
-        aphi_tilt -= pgen.potential_cutoff;
+        aphi_tilt = (rho/pgen.rho_max)-pgen.potential_cutoff;
         aphi_tilt = fmax(aphi_tilt, 0.0);
+        aphi_tilt = pow(aphi_tilt, pgen.potential_rho_pow)*scaling_param;
+        
+        if (pgen.potential_loops > 0) {
+          Real R = r*sin_vartheta; 
+          aphi_tilt *= sin(pgen.potential_loops*M_PI*(R-pgen.potential_edge)/(pgen.potential_outer_edge-pgen.potential_edge));
+        }
         if (pgen.psi != 0.0) {
           Real dvarphi_dtheta = -pgen.sin_psi * sin_phi / SQR(sin_vartheta);
           Real dvarphi_dphi = sin_theta / SQR(sin_vartheta)
@@ -1848,5 +1859,102 @@ void TorusFluxes(HistoryData *pdata, Mesh *pm) {
     pdata->hdata[n] = 0.0;
   }
 
+  return;
+}
+void Cooling(Mesh *pm, const Real bdt) {
+  //ParameterInput param_in;
+  //ParameterInput *pin = new ParameterInput();
+  //delete pin;
+  MeshBlockPack *pmbp = pm->pmb_pack;
+  
+  if (pmbp->prad == nullptr){
+    Real gamma;
+    DvceArray5D<Real> w0_, u0_;
+    if (pmbp->phydro != nullptr) {
+      gamma = pmbp->phydro->peos->eos_data.gamma;
+      w0_ = pmbp->phydro->w0;
+      u0_ = pmbp->phydro->u0;
+    } 
+    else if (pmbp->pmhd != nullptr) {
+      gamma = pmbp->pmhd->peos->eos_data.gamma;
+      w0_ = pmbp->pmhd->w0;
+      u0_ = pmbp->pmhd->u0;
+    }
+    auto &size = pmbp->pmb->mb_size;
+    auto &coord = pmbp->pcoord->coord_data;
+    Real &spin = coord.bh_spin;
+    bool &is_minkowski = coord.is_minkowski;
+    auto &indcs = pm->mb_indcs;
+    int is = indcs.is, js = indcs.js, ks = indcs.ks;
+    int ie = indcs.ie, je = indcs.je, ke = indcs.ke;
+    int nmb = pmbp->nmb_thispack;
+    par_for("User_Source_Cooling", DevExeSpace(), 0,nmb-1,ks,ke+1,js,je+1,is,ie+1,
+    KOKKOS_LAMBDA(int m, int k, int j, int i) {
+      
+      //Find cell center position
+      Real &x1min = size.d_view(m).x1min;
+      Real &x1max = size.d_view(m).x1max;
+      Real x1 = CellCenterX(i-is, indcs.nx1, x1min, x1max);
+
+      Real &x2min = size.d_view(m).x2min;
+      Real &x2max = size.d_view(m).x2max;
+      Real x2 = CellCenterX(j-js, indcs.nx2, x2min, x2max);
+
+      Real &x3min = size.d_view(m).x3min;
+      Real &x3max = size.d_view(m).x3max;
+      Real x3 = CellCenterX(k-ks, indcs.nx3, x3min, x3max);
+
+      //Find Boyer-Lindquist radius,theta
+      Real rad = sqrt(SQR(x1) + SQR(x2) + SQR(x3));
+      Real r = fmax((sqrt( SQR(rad) - SQR(spin) + sqrt(SQR(SQR(rad)-SQR(spin))
+                      + 4.0*SQR(spin)*SQR(x3)) ) / sqrt(2.0)), 1.0);
+      Real theta = (fabs(x3/r) < 1.0) ? acos(x3/r) : acos(copysign(1.0, x3));
+
+      Real R = r*sin(theta);
+
+      Real gm1 = gamma - 1.0;
+
+      //Get Metric
+      Real glower[4][4], gupper[4][4];
+      ComputeMetricAndInverse(x1, x2, x3, is_minkowski, spin,
+                              glower, gupper);
+
+      //Find Covariant Fluid 4 Velocity
+      Real alpha = pow(-gupper[0][0],-0.5);
+      Real beta1 = -gupper[0][1]/gupper[0][0];
+      Real beta2 = -gupper[0][2]/gupper[0][0];
+      Real beta3 = -gupper[0][3]/gupper[0][0];
+
+      Real vsq = glower[1][1]*SQR(w0_(m,IVX,k,j,i))+glower[2][2]*SQR(w0_(m,IVY,k,j,i))
+      +glower[3][3]*SQR(w0_(m,IVZ,k,j,i))+2.0*glower[1][2]*w0_(m,IVX,k,j,i)*w0_(m,IVY,k,j,i)
+      +2.0*glower[1][3]*w0_(m,IVX,k,j,i)*w0_(m,IVZ,k,j,i)+2.0*glower[2][3]*w0_(m,IVY,k,j,i)*w0_(m,IVZ,k,j,i);
+
+      Real u0 = sqrt(1+vsq)/alpha;
+      Real u1 = w0_(m,IVX,k,j,i) - beta1*u0;
+      Real u2 = w0_(m,IVY,k,j,i) - beta2*u0;
+      Real u3 = w0_(m,IVZ,k,j,i) - beta3*u0;
+      
+      Real u_0 = u0*glower[0][0]+u1*glower[0][1]+u2*glower[0][2]+u3*glower[0][3];
+      Real u_1 = u0*glower[1][0]+u1*glower[1][1]+u2*glower[1][2]+u3*glower[1][3];
+      Real u_2 = u0*glower[2][0]+u1*glower[2][1]+u2*glower[2][2]+u3*glower[2][3];
+      Real u_3 = u0*glower[3][0]+u1*glower[3][1]+u2*glower[3][2]+u3*glower[3][3];
+
+      //Find Cooling Timescale
+      Real Cooling_Timescale = 2.0*M_PI*(spin+pow(R,1.5));
+
+      //Find entropy constant
+      Real s = (w0_(m,IEN,k,j,i)*gm1)/pow(w0_(m,IDN,k,j,i),gamma);
+
+      //Find Comoving Cooling Rate
+      Real CoolingRate = ((s_targ*pow(w0_(m,IDN,k,j,i),gamma)/gm1)*log(s/s_targ))/Cooling_Timescale;
+      if((CoolingRate>0)&&(Cooling_Timescale>bdt)){
+        //Update conserved energy density and momenta
+        u0_(m,IEN,k,j,i) -= CoolingRate*bdt*u_0;
+        u0_(m,IM1,k,j,i) -= CoolingRate*bdt*u_1;
+        u0_(m,IM2,k,j,i) -= CoolingRate*bdt*u_2;
+        u0_(m,IM3,k,j,i) -= CoolingRate*bdt*u_3;
+      };
+    });
+  };
   return;
 }
