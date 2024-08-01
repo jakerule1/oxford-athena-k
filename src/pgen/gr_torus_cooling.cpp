@@ -1859,16 +1859,22 @@ void Cooling(Mesh *pm, const Real bdt) {
   if (pmbp->prad == nullptr){
     Real gamma;
     DvceArray5D<Real> w0_, u0_;
+    int nfluid, nscalars;
     if (pmbp->phydro != nullptr) {
       gamma = pmbp->phydro->peos->eos_data.gamma;
       w0_ = pmbp->phydro->w0;
       u0_ = pmbp->phydro->u0;
+      nfluid = pmbp->phydro->nhydro; 
+      nscalars = pmbp->phydro->nscalars;
     } 
     else if (pmbp->pmhd != nullptr) {
       gamma = pmbp->pmhd->peos->eos_data.gamma;
       w0_ = pmbp->pmhd->w0;
       u0_ = pmbp->pmhd->u0;
+      nfluid = pmbp->phydro->nmhd;
+      nscalars = pmbp->phydro->nscalars;
     }
+    int entropyIdx = nfluid+nscalars-1;
     auto &size = pmbp->pmb->mb_size;
     auto &coord = pmbp->pcoord->coord_data;
     Real &spin = coord.bh_spin;
@@ -1942,6 +1948,7 @@ void Cooling(Mesh *pm, const Real bdt) {
         u0_(m,IM1,k,j,i) -= CoolingRate*bdt*u_1;
         u0_(m,IM2,k,j,i) -= CoolingRate*bdt*u_2;
         u0_(m,IM3,k,j,i) -= CoolingRate*bdt*u_3;
+        u0_(m,entropyIdx,k,j,i) -= gm1*CoolingRate*bdt/pow(w0_(m,IDN,k,j,i),gm1);
       };
     });
   };
