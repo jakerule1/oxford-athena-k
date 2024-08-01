@@ -186,7 +186,6 @@ void ProblemGenerator::UserProblem(ParameterInput *pin, const bool restart) {
 
   // Select either Hydro or MHD
   DvceArray5D<Real> u0_, w0_;
-  int nfluid, nscalars;
   if (pmbp->phydro != nullptr) {
     u0_ = pmbp->phydro->u0;
     w0_ = pmbp->phydro->w0;
