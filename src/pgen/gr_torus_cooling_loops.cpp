@@ -100,6 +100,7 @@ Real A3(struct torus_pgen pgen, Real x1, Real x2, Real x3);
 // Useful container for physical parameters of torus
 struct torus_pgen {
   Real spin;                                  // black hole spin
+  Real dfloor, pfloor;                        // floors
   Real dexcise, pexcise;                      // excision parameters
   Real gamma_adi;                             // EOS parameters
   Real arad;                                  // radiation constant
@@ -215,8 +216,12 @@ void ProblemGenerator::UserProblem(ParameterInput *pin, const bool restart) {
   // Get ideal gas EOS data
   if (pmbp->phydro != nullptr) {
     torus.gamma_adi = pmbp->phydro->peos->eos_data.gamma;
+    torus.dfloor    = pmbp->phydro->peos->eos_data.dfloor;
+    torus.pfloor    = pmbp->phydro->peos->eos_data.pfloor;
   } else if (pmbp->pmhd != nullptr) {
     torus.gamma_adi = pmbp->pmhd->peos->eos_data.gamma;
+    torus.dfloor    = pmbp->pmhd->peos->eos_data.dfloor;
+    torus.pfloor    = pmbp->pmhd->peos->eos_data.pfloor;
   }
   Real gm1 = torus.gamma_adi - 1.0;
 
