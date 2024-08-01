@@ -1871,8 +1871,8 @@ void Cooling(Mesh *pm, const Real bdt) {
       gamma = pmbp->pmhd->peos->eos_data.gamma;
       w0_ = pmbp->pmhd->w0;
       u0_ = pmbp->pmhd->u0;
-      nfluid = pmbp->phydro->nmhd;
-      nscalars = pmbp->phydro->nscalars;
+      nfluid = pmbp->pmhd->nmhd;
+      nscalars = pmbp->pmhd->nscalars;
     }
     int entropyIdx = nfluid+nscalars-1;
     auto &size = pmbp->pmb->mb_size;
