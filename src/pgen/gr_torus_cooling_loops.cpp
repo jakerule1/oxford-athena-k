@@ -185,12 +185,17 @@ void ProblemGenerator::UserProblem(ParameterInput *pin, const bool restart) {
 
   // Select either Hydro or MHD
   DvceArray5D<Real> u0_, w0_;
+  int nfluid, nscalars;
   if (pmbp->phydro != nullptr) {
     u0_ = pmbp->phydro->u0;
     w0_ = pmbp->phydro->w0;
+    nfluid = pmbp->phydro->nhydro;
+    nscalars = pmbp->phydro->nscalars;
   } else if (pmbp->pmhd != nullptr) {
     u0_ = pmbp->pmhd->u0;
     w0_ = pmbp->pmhd->w0;
+    nfluid = pmbp->pmhd->nmhd;
+    nscalars = pmbp->pmhd->nscalars;
   }
 
   // Extract radiation parameters if enabled
@@ -415,6 +420,19 @@ void ProblemGenerator::UserProblem(ParameterInput *pin, const bool restart) {
     w0_(m,IVX,k,j,i) = uu1;
     w0_(m,IVY,k,j,i) = uu2;
     w0_(m,IVZ,k,j,i) = uu3;
+
+    // Calculate entropy constant and set the first passive scalar to it
+    Real K_gas;
+    if (pgas<=trs.pfloor){
+      K_gas = trs.pfloor/pow(rho,trs.gamma_adi);
+    }
+    else{
+      K_gas = pgas/pow(rho,trs.gamma_adi);
+    }
+
+    if (nscalars != 0){
+      w0_(m,nfluid,k,j,i)=K_gas;
+    }
 
     // Set coordinate frame intensity (if radiation enabled)
     if (is_radiation_enabled) {
