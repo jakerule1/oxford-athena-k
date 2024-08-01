@@ -190,13 +190,9 @@ void ProblemGenerator::UserProblem(ParameterInput *pin, const bool restart) {
   if (pmbp->phydro != nullptr) {
     u0_ = pmbp->phydro->u0;
     w0_ = pmbp->phydro->w0;
-    nfluid = pmbp->phydro->nhydro;
-    nscalars = pmbp->phydro->nscalars;
   } else if (pmbp->pmhd != nullptr) {
     u0_ = pmbp->pmhd->u0;
     w0_ = pmbp->pmhd->w0;
-    nfluid = pmbp->pmhd->nmhd;
-    nscalars = pmbp->pmhd->nscalars;
   }
 
   // Extract radiation parameters if enabled
@@ -425,18 +421,6 @@ void ProblemGenerator::UserProblem(ParameterInput *pin, const bool restart) {
     w0_(m,IVX,k,j,i) = uu1;
     w0_(m,IVY,k,j,i) = uu2;
     w0_(m,IVZ,k,j,i) = uu3;
-
-    // Calculate entropy constant and set the first passive scalar to it
-    // Real K_gas;
-    // if (pgas<=trs.pfloor){
-    //   K_gas = trs.pfloor/pow(rho,trs.gamma_adi);
-    // }
-    // else{
-    //   K_gas = pgas/pow(rho,trs.gamma_adi);
-    // }
-    
-    // int entropyIdx = nfluid+nscalars-1;
-    // w0_(m,entropyIdx,k,j,i)=K_gas;
 
     // Set coordinate frame intensity (if radiation enabled)
     if (is_radiation_enabled) {
@@ -1982,7 +1966,7 @@ void Cooling(Mesh *pm, const Real bdt) {
         u0_(m,IM1,k,j,i) -= CoolingRate*bdt*u_1;
         u0_(m,IM2,k,j,i) -= CoolingRate*bdt*u_2;
         u0_(m,IM3,k,j,i) -= CoolingRate*bdt*u_3;
-        //u0_(m,entropyIdx,k,j,i) -= gm1*CoolingRate*bdt/pow(w0_(m,IDN,k,j,i),gm1);
+        u0_(m,entropyIdx,k,j,i) -= gm1*CoolingRate*bdt/pow(w0_(m,IDN,k,j,i),gm1);
       };
     });
   };
