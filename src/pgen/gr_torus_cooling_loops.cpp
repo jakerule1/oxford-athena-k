@@ -1870,6 +1870,7 @@ void Cooling(Mesh *pm, const Real bdt) {
   if (pmbp->prad == nullptr){
     Real gamma;
     DvceArray5D<Real> w0_, u0_;
+    int nfluid, nscalars;
     if (pmbp->phydro != nullptr) {
       gamma = pmbp->phydro->peos->eos_data.gamma;
       w0_ = pmbp->phydro->w0;
