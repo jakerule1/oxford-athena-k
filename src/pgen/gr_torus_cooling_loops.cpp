@@ -1965,7 +1965,7 @@ void Cooling(Mesh *pm, const Real bdt) {
         u0_(m,IM1,k,j,i) -= CoolingRate*bdt*u_1;
         u0_(m,IM2,k,j,i) -= CoolingRate*bdt*u_2;
         u0_(m,IM3,k,j,i) -= CoolingRate*bdt*u_3;
-        u0_(m,entropyIdx,k,j,i) -= gm1*CoolingRate*bdt/pow(w0_(m,IDN,k,j,i),gm1);
+        //u0_(m,entropyIdx,k,j,i) -= gm1*CoolingRate*bdt/pow(w0_(m,IDN,k,j,i),gm1);
       };
     });
   };
