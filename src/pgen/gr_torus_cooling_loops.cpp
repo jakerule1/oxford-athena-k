@@ -435,10 +435,7 @@ void ProblemGenerator::UserProblem(ParameterInput *pin, const bool restart) {
       K_gas = pgas/pow(rho,trs.gamma_adi);
     }
     int entropyIdx = nfluid+nscalars-1;
-    w0_(m,entropyIdx,k,j,i)=K_gas;
-    if (k==0 && j==0 && i==0){
-      printf("Kgas is %f \n",K_gas);
-    }
+    w0_(m,5,k,j,i)=K_gas;
     // Set coordinate frame intensity (if radiation enabled)
     if (is_radiation_enabled) {
       Real q = glower[1][1]*uu1*uu1 + 2.0*glower[1][2]*uu1*uu2 + 2.0*glower[1][3]*uu1*uu3
