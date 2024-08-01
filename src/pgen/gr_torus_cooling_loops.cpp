@@ -427,15 +427,17 @@ void ProblemGenerator::UserProblem(ParameterInput *pin, const bool restart) {
     w0_(m,IVZ,k,j,i) = uu3;
 
     // Calculate entropy constant and set the first passive scalar to it
-    Real K_gas;
-    if (pgas<=trs.pfloor){
-      K_gas = trs.pfloor/pow(rho,trs.gamma_adi);
-    }
-    else{
-      K_gas = pgas/pow(rho,trs.gamma_adi);
-    }
-    int entropyIdx = nfluid+nscalars-1;
-    w0_(m,5,k,j,i)=1;
+    // Real K_gas;
+    // if (pgas<=trs.pfloor){
+    //   K_gas = trs.pfloor/pow(rho,trs.gamma_adi);
+    // }
+    // else{
+    //   K_gas = pgas/pow(rho,trs.gamma_adi);
+    // }
+    
+    // int entropyIdx = nfluid+nscalars-1;
+    // w0_(m,entropyIdx,k,j,i)=K_gas;
+
     // Set coordinate frame intensity (if radiation enabled)
     if (is_radiation_enabled) {
       Real q = glower[1][1]*uu1*uu1 + 2.0*glower[1][2]*uu1*uu2 + 2.0*glower[1][3]*uu1*uu3
@@ -824,6 +826,7 @@ void ProblemGenerator::UserProblem(ParameterInput *pin, const bool restart) {
   } else if (pmbp->pmhd != nullptr) {
     auto &bcc0_ = pmbp->pmhd->bcc0;
     pmbp->pmhd->peos->PrimToCons(w0_, bcc0_, u0_, is, ie, js, je, ks, ke);
+    pmbp->pmhd->EntropyReset();
   }
 
   return;
