@@ -434,10 +434,8 @@ void ProblemGenerator::UserProblem(ParameterInput *pin, const bool restart) {
     else{
       K_gas = pgas/pow(rho,trs.gamma_adi);
     }
-
-    if (nscalars != 0){
-      w0_(m,nfluid,k,j,i)=K_gas;
-    }
+    int entropyIdx = nfluid+nscalars-1;
+    w0_(m,entropyIdx,k,j,i)=K_gas;
 
     // Set coordinate frame intensity (if radiation enabled)
     if (is_radiation_enabled) {
@@ -1982,7 +1980,7 @@ void Cooling(Mesh *pm, const Real bdt) {
         u0_(m,IM1,k,j,i) -= CoolingRate*bdt*u_1;
         u0_(m,IM2,k,j,i) -= CoolingRate*bdt*u_2;
         u0_(m,IM3,k,j,i) -= CoolingRate*bdt*u_3;
-        u0_(m,entropyIdx,k,j,i) -= gm1*CoolingRate*bdt/pow(w0_(m,IDN,k,j,i),gm1);
+        //u0_(m,entropyIdx,k,j,i) -= gm1*CoolingRate*bdt/pow(w0_(m,IDN,k,j,i),gm1);
       };
     });
   };
