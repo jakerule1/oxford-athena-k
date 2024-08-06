@@ -458,6 +458,19 @@ void IdealGRMHD::ConsToPrim(DvceArray5D<Real> &cons, const DvceFaceFld4D<Real> &
         cons(m,IM3,k,j,i) = u_out.mz;
         cons(m,IEN,k,j,i) = u_out.e;
         u.d = u_out.d;  // (needed if there are scalars below)
+
+        if (entropy_fix_){
+          Real alpha = sqrt(-1.0/gupper[0][0]);
+          // compute total entropy
+          Real q = glower[1][1]*w.vx*w.vx + 2.0*glower[1][2]*w.vx*w.vy + 2.0*glower[1][3]*w.vx*w.vz
+                + glower[2][2]*w.vy*w.vy + 2.0*glower[2][3]*w.vy*w.vz
+                + glower[3][3]*w.vz*w.vz;
+          Real gamma = sqrt(1.0 + q);
+          Real u0 = gamma/alpha;
+
+          // assign total entropy to the first scalar
+          cons(m,entropyIdx,k,j,i) = gm1*w.e / pow(w.d,gm1) * u0;
+        }
       }
 
       // convert scalars (if any)
