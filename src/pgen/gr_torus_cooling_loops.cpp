@@ -1955,7 +1955,8 @@ void Cooling(Mesh *pm, const Real bdt) {
       Real Cooling_Timescale = 2.0*M_PI*(spin+pow(R,1.5));
 
       //Find entropy constant
-      Real s = (w0_(m,IEN,k,j,i)*gm1)/pow(w0_(m,IDN,k,j,i),gamma);
+      //Real s = (w0_(m,IEN,k,j,i)*gm1)/pow(w0_(m,IDN,k,j,i),gamma);
+      Real s = w0_(m,entropyIdx,k,j,i);
 
       //Find Comoving Cooling Rate
       Real CoolingRate = (w0_(m,IEN,k,j,i)*log(s/s_targ))/Cooling_Timescale;
