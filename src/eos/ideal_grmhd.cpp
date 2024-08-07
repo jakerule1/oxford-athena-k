@@ -294,6 +294,22 @@ void IdealGRMHD::ConsToPrim(DvceArray5D<Real> &cons, const DvceFaceFld4D<Real> &
       //   sigma_cold = b_sq/w.d;
       // }
 
+      // Calculate the ratio of Kinetic energy in the fluid part to check if entropy-based inversion is needed
+      Real Kinetic_Ratio = 0.0;
+      if (!c2p_failure) {
+        Real q = glower[1][1]*w.vx*w.vx + 2.0*glower[1][2]*w.vx*w.vy + 2.0*glower[1][3]*w.vx*w.vz
+                + glower[2][2]*w.vy*w.vy + 2.0*glower[2][3]*w.vy*w.vz
+                + glower[3][3]*w.vz*w.vz;
+        Real lor = sqrt(1.0 + q);
+
+        Real rperp_sqrd = s2/SQR(u_sr.d)-SQR(rpar)/b2;
+        Real magnetic_component = 0.5*b2*(1+rperp_sqrd/SQR(lor+b2/u_sr.d));
+
+        Real fluid_energy = (u_sr.e - magnetic_component)/u_sr.d;
+
+        Kinetic_Ratio = (lor-1)/fluid_energy;
+
+      }
       // apply temperature fix
       if (is_radiation_enabled_ && temperature_fix) {
         if ((sigma_cold > sigma_cold_cut_) && (rv < r_tfix_cut_)) { // different criterion can be used here
@@ -313,7 +329,7 @@ void IdealGRMHD::ConsToPrim(DvceArray5D<Real> &cons, const DvceFaceFld4D<Real> &
       // apply entropy fix
       if (entropy_fix_ && !entropy_fix_turnoff_) {
         // fix the prim in strongly magnetized region or cells that fail the variable inversion
-        if (c2p_failure || efloor_used ) {
+        if (c2p_failure || ( Kinetic_Ratio >= (1-1e-6) ) ) {
           // compute the entropy fix
           //|| (sigma_cold > sigma_cold_cut_)
           bool dfloor_used_in_fix=false, efloor_used_in_fix=false;
@@ -465,8 +481,8 @@ void IdealGRMHD::ConsToPrim(DvceArray5D<Real> &cons, const DvceFaceFld4D<Real> &
           Real q = glower[1][1]*w.vx*w.vx + 2.0*glower[1][2]*w.vx*w.vy + 2.0*glower[1][3]*w.vx*w.vz
                 + glower[2][2]*w.vy*w.vy + 2.0*glower[2][3]*w.vy*w.vz
                 + glower[3][3]*w.vz*w.vz;
-          Real gamma = sqrt(1.0 + q);
-          Real u0 = gamma/alpha;
+          Real lor = sqrt(1.0 + q);
+          Real u0 = lor/alpha;
 
           // assign total entropy to the first scalar
           cons(m,entropyIdx,k,j,i) = gm1*w.e / pow(w.d,gm1) * u0;
