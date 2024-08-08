@@ -329,7 +329,7 @@ void IdealGRMHD::ConsToPrim(DvceArray5D<Real> &cons, const DvceFaceFld4D<Real> &
       // apply entropy fix
       if (entropy_fix_ && !entropy_fix_turnoff_) {
         // fix the prim in strongly magnetized region or cells that fail the variable inversion
-        if (c2p_failure || ( Kinetic_Ratio >= (1-1e-6) ) ) {
+        if (( Kinetic_Ratio >= (1-1e-6) ) ) {
           // compute the entropy fix
           //|| (sigma_cold > sigma_cold_cut_)
           bool dfloor_used_in_fix=false, efloor_used_in_fix=false;
