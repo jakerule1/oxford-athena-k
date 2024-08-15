@@ -732,7 +732,7 @@ void IdealGRMHD::ConsToPrim(DvceArray5D<Real> &cons, const DvceFaceFld4D<Real> &
 
         Real glower[4][4], gupper[4][4];
         ComputeMetricAndInverse(x1v, x2v, x3v, flat, spin, glower, gupper);
-
+        Real alpha = sqrt(-1.0/gupper[0][0]);
         // Reset conserved variables
         HydCons1D u;
         SingleP2C_IdealGRMHD(glower, gupper, w, eos.gamma, u);
