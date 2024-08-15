@@ -136,7 +136,7 @@ void IdealGRMHD::ConsToPrim(DvceArray5D<Real> &cons, const DvceFaceFld4D<Real> &
 
     Real glower[4][4], gupper[4][4];
     ComputeMetricAndInverse(x1v, x2v, x3v, flat, spin, glower, gupper);
-
+    Real alpha = sqrt(-1.0/gupper[0][0]);
     HydPrim1D w;
     bool dfloor_used=false, efloor_used=false;
     bool vceiling_used=false, c2p_failure=false;
@@ -329,7 +329,7 @@ void IdealGRMHD::ConsToPrim(DvceArray5D<Real> &cons, const DvceFaceFld4D<Real> &
       // apply entropy fix
       if (entropy_fix_ && !entropy_fix_turnoff_) {
         // fix the prim in strongly magnetized region or cells that fail the variable inversion
-        if (( Kinetic_Ratio >= (1-1e-6) ) ) {
+        if (c2p_failure || ( Kinetic_Ratio >= (1-1e-5) ) ) {
           // compute the entropy fix
           //|| (sigma_cold > sigma_cold_cut_)
           bool dfloor_used_in_fix=false, efloor_used_in_fix=false;
@@ -341,8 +341,7 @@ void IdealGRMHD::ConsToPrim(DvceArray5D<Real> &cons, const DvceFaceFld4D<Real> &
           w_fix.vy = w.vy;
           w_fix.vz = w.vz;
           w_fix.e  = w.e;
-          Real alpha = sqrt(-1.0/gupper[0][0]);
-
+          
           Real s_tot_sr = cons(m,entropyIdx,k,j,i)*alpha;
           SingleC2P_IdealSRMHD_EntropyFix(u_sr, s_tot_sr, eos, s2, b2, rpar, w_fix, w_old,
                                           dfloor_used_in_fix, efloor_used_in_fix,
@@ -478,7 +477,6 @@ void IdealGRMHD::ConsToPrim(DvceArray5D<Real> &cons, const DvceFaceFld4D<Real> &
         u.d = u_out.d;  // (needed if there are scalars below)
 
         if (entropy_fix_){
-          Real alpha = sqrt(-1.0/gupper[0][0]);
           // compute total entropy
           Real q = glower[1][1]*w.vx*w.vx + 2.0*glower[1][2]*w.vx*w.vy + 2.0*glower[1][3]*w.vx*w.vz
                 + glower[2][2]*w.vy*w.vy + 2.0*glower[2][3]*w.vy*w.vz
@@ -743,6 +741,20 @@ void IdealGRMHD::ConsToPrim(DvceArray5D<Real> &cons, const DvceFaceFld4D<Real> &
         cons(m,IM2,k,j,i) = u.my;
         cons(m,IM3,k,j,i) = u.mz;
         cons(m,IEN,k,j,i) = u.e;
+
+        if (entropy_fix_){
+          // compute total entropy
+          Real q = glower[1][1]*w.vx*w.vx + 2.0*glower[1][2]*w.vx*w.vy + 2.0*glower[1][3]*w.vx*w.vz
+                + glower[2][2]*w.vy*w.vy + 2.0*glower[2][3]*w.vy*w.vz
+                + glower[3][3]*w.vz*w.vz;
+          Real lor = sqrt(1.0 + q);
+          Real u0 = lor/alpha;
+
+          // assign total entropy to the first scalar
+          cons(m,entropyIdx,k,j,i) = gm1*w.e / pow(w.d,gm1) * u0;
+          prim(m,entropyIdx,k,j,i) = cons(m,entropyIdx,k,j,i)/u.d;
+        }
+
       } // endif (!c2p_flag_(m,k,j,i) && !(excised))
     }); // end_par_for 'adjacent_cellavg_fix'
   } // endif (cellavg_fix_turn_on_)
