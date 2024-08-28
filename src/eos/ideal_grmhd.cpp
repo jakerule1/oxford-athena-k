@@ -295,21 +295,21 @@ void IdealGRMHD::ConsToPrim(DvceArray5D<Real> &cons, const DvceFaceFld4D<Real> &
       // }
 
       // Calculate the ratio of Kinetic energy in the fluid part to check if entropy-based inversion is needed
-      // Real Kinetic_Ratio = 0.0;
-      // if (!c2p_failure) {
-      //   Real q = glower[1][1]*w.vx*w.vx + 2.0*glower[1][2]*w.vx*w.vy + 2.0*glower[1][3]*w.vx*w.vz
-      //           + glower[2][2]*w.vy*w.vy + 2.0*glower[2][3]*w.vy*w.vz
-      //           + glower[3][3]*w.vz*w.vz;
-      //   Real lor = sqrt(1.0 + q);
+      Real Kinetic_Ratio = 0.0;
+      if (!c2p_failure) {
+        Real q = glower[1][1]*w.vx*w.vx + 2.0*glower[1][2]*w.vx*w.vy + 2.0*glower[1][3]*w.vx*w.vz
+                + glower[2][2]*w.vy*w.vy + 2.0*glower[2][3]*w.vy*w.vz
+                + glower[3][3]*w.vz*w.vz;
+        Real lor = sqrt(1.0 + q);
 
-      //   Real rperp_sqrd = s2/SQR(u_sr.d)-SQR(rpar)/b2;
-      //   Real magnetic_component = 0.5*b2*(1+rperp_sqrd/SQR(lor+b2/u_sr.d));
+        Real rperp_sqrd = s2/SQR(u_sr.d)-SQR(rpar)/b2;
+        Real magnetic_component = 0.5*b2*(1+rperp_sqrd/SQR(lor+b2/u_sr.d));
 
-      //   Real fluid_energy = (u_sr.e - magnetic_component)/u_sr.d;
+        Real fluid_energy = (u_sr.e - magnetic_component)/u_sr.d;
 
-      //   Kinetic_Ratio = (lor-1)/fluid_energy;
+        Kinetic_Ratio = (lor-1)/fluid_energy;
 
-      // }
+      }
       // apply temperature fix
       if (is_radiation_enabled_ && temperature_fix) {
         if ((sigma_cold > sigma_cold_cut_) && (rv < r_tfix_cut_)) { // different criterion can be used here
@@ -330,7 +330,7 @@ void IdealGRMHD::ConsToPrim(DvceArray5D<Real> &cons, const DvceFaceFld4D<Real> &
       if (entropy_fix_ && !entropy_fix_turnoff_) {
         // fix the prim in strongly magnetized region or cells that fail the variable inversion
         //( Kinetic_Ratio >= (1-1e-5))
-        if (c2p_failure || efloor_used )  {
+        if (c2p_failure || efloor_used || ( Kinetic_Ratio >= (1-1e-5)))  {
           // compute the entropy fix
           //|| (sigma_cold > sigma_cold_cut_)
           bool dfloor_used_in_fix=false, efloor_used_in_fix=false;
