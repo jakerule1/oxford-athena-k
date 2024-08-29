@@ -82,7 +82,7 @@ void IdealGRMHD::ConsToPrim(DvceArray5D<Real> &cons, const DvceFaceFld4D<Real> &
   auto &excision_flux_ = pmy_pack->pcoord->excision_flux;
   auto &dexcise_ = pmy_pack->pcoord->coord_data.dexcise;
   auto &pexcise_ = pmy_pack->pcoord->coord_data.pexcise;
-  auto &r_excise = pmbp->pcoord->coord_data.rexcise;
+  auto &r_excise = pmy_pack->pcoord->coord_data.rexcise;
 
   const int ni   = (iu - il + 1);
   const int nji  = (ju - jl + 1)*ni;
