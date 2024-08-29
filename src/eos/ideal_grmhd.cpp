@@ -82,6 +82,7 @@ void IdealGRMHD::ConsToPrim(DvceArray5D<Real> &cons, const DvceFaceFld4D<Real> &
   auto &excision_flux_ = pmy_pack->pcoord->excision_flux;
   auto &dexcise_ = pmy_pack->pcoord->coord_data.dexcise;
   auto &pexcise_ = pmy_pack->pcoord->coord_data.pexcise;
+  auto &r_excise = pmbp->pcoord->coord_data.rexcise;
 
   const int ni   = (iu - il + 1);
   const int nji  = (ju - jl + 1)*ni;
@@ -133,6 +134,8 @@ void IdealGRMHD::ConsToPrim(DvceArray5D<Real> &cons, const DvceFaceFld4D<Real> &
     Real x3v = CellCenterX(k-ks, indcs.nx3, x3min, x3max);
 
     Real rv = sqrt(SQR(x1v)+SQR(x2v)+SQR(x3v));
+    Real rad = sqrt( SQR(rv) - SQR(spin) + sqrt(SQR(SQR(rv)-SQR(spin))
+                      + 4.0*SQR(spin)*SQR(x3v)) ) / sqrt(2.0);
 
     Real glower[4][4], gupper[4][4];
     ComputeMetricAndInverse(x1v, x2v, x3v, flat, spin, glower, gupper);
@@ -330,7 +333,7 @@ void IdealGRMHD::ConsToPrim(DvceArray5D<Real> &cons, const DvceFaceFld4D<Real> &
       if (entropy_fix_ && !entropy_fix_turnoff_) {
         // fix the prim in strongly magnetized region or cells that fail the variable inversion
         //( Kinetic_Ratio >= (1-1e-5))
-        if (c2p_failure || efloor_used || ( Kinetic_Ratio >= (1-1e-5)))  {
+        if ((c2p_failure || efloor_used || ( Kinetic_Ratio >= (1-1e-5)))&&(rad>1.25*r_excise))  {
           // compute the entropy fix
           //|| (sigma_cold > sigma_cold_cut_)
           bool dfloor_used_in_fix=false, efloor_used_in_fix=false;
