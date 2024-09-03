@@ -1963,7 +1963,7 @@ void Cooling(Mesh *pm, const Real bdt) {
 
       bool Bound = (u_0*(1+gamma*w0_(m,IEN,k,j,i)/w0_(m,IDN,k,j,i))) > - 1.0;
 
-      if((CoolingRate>0)&&(Cooling_Timescale>bdt)&&Bound){
+      if((CoolingRate>0)&&(Cooling_Timescale>bdt)){
         //Update conserved energy density and momenta
         u0_(m,IEN,k,j,i) -= CoolingRate*bdt*u_0;
         u0_(m,IM1,k,j,i) -= CoolingRate*bdt*u_1;

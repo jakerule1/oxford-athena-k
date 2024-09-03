@@ -304,9 +304,13 @@ void IdealGRMHD::ConsToPrim(DvceArray5D<Real> &cons, const DvceFaceFld4D<Real> &
                 + glower[2][2]*w.vy*w.vy + 2.0*glower[2][3]*w.vy*w.vz
                 + glower[3][3]*w.vz*w.vz;
         Real lor = sqrt(1.0 + q);
+        
+        Real magnetic_component=0;
 
-        Real rperp_sqrd = s2/SQR(u_sr.d)-SQR(rpar)/b2;
-        Real magnetic_component = 0.5*b2*(1+rperp_sqrd/SQR(lor+b2/u_sr.d));
+        if (b2>0){
+          Real rperp_sqrd = s2/SQR(u_sr.d)-SQR(rpar)/b2;
+          magnetic_component = 0.5*b2*(1+rperp_sqrd/SQR(lor+b2/u_sr.d));
+        }
 
         Real fluid_energy = (u_sr.e - magnetic_component)/u_sr.d;
 
@@ -333,7 +337,7 @@ void IdealGRMHD::ConsToPrim(DvceArray5D<Real> &cons, const DvceFaceFld4D<Real> &
       if (entropy_fix_ && !entropy_fix_turnoff_) {
         // fix the prim in strongly magnetized region or cells that fail the variable inversion
         //( Kinetic_Ratio >= (1-1e-5))
-        if ((c2p_failure || efloor_used || ( Kinetic_Ratio >= (1-1e-5)))&&(rad>1.25*r_excise))  {
+        if ((c2p_failure || ( Kinetic_Ratio >= (1-1e-5)))&&(rad>1.25*r_excise))  {
           // compute the entropy fix
           //|| (sigma_cold > sigma_cold_cut_)
           bool dfloor_used_in_fix=false, efloor_used_in_fix=false;
