@@ -143,6 +143,7 @@ void IdealGRMHD::ConsToPrim(DvceArray5D<Real> &cons, const DvceFaceFld4D<Real> &
     HydPrim1D w;
     bool dfloor_used=false, efloor_used=false;
     bool vceiling_used=false, c2p_failure=false;
+    bool entropy_fix_used=false;
     int iter_used=0;
 
     // Only execute cons2prim if outside excised region
@@ -337,7 +338,7 @@ void IdealGRMHD::ConsToPrim(DvceArray5D<Real> &cons, const DvceFaceFld4D<Real> &
       if (entropy_fix_ && !entropy_fix_turnoff_) {
         // fix the prim in strongly magnetized region or cells that fail the variable inversion
         //( Kinetic_Ratio >= (1-1e-5))
-        if ((c2p_failure || ( Kinetic_Ratio >= (1-1e-5)))&&(rad>1.25*r_excise))  {
+        if ((c2p_failure || (( Kinetic_Ratio >= (1-1e-5))&&(Kinetic_Ratio < 1)))&&(rad>1.25*r_excise))  {
           // compute the entropy fix
           //|| (sigma_cold > sigma_cold_cut_)
           bool dfloor_used_in_fix=false, efloor_used_in_fix=false;
@@ -366,6 +367,7 @@ void IdealGRMHD::ConsToPrim(DvceArray5D<Real> &cons, const DvceFaceFld4D<Real> &
             efloor_used = efloor_used_in_fix;
             c2p_failure = c2p_failure_in_fix;
             iter_used_in_fix = iter_used;
+            entropy_fix_used = true;
           }
 
           // Real pgas_alt = (s_tot/u_sr.d) * pow(w.d, eos.gamma);
@@ -464,7 +466,7 @@ void IdealGRMHD::ConsToPrim(DvceArray5D<Real> &cons, const DvceFaceFld4D<Real> &
       bcc(m,IBZ,k,j,i) = u.bz;
 
       // reset conserved variables if floor, ceiling, failure, or excision encountered
-      if (dfloor_used || efloor_used || vceiling_used || c2p_failure || excised) {
+      if (dfloor_used || efloor_used || vceiling_used || c2p_failure || excised || entropy_fix_used) {
         MHDPrim1D w_in;
         w_in.d  = w.d;
         w_in.vx = w.vx;
@@ -484,7 +486,7 @@ void IdealGRMHD::ConsToPrim(DvceArray5D<Real> &cons, const DvceFaceFld4D<Real> &
         cons(m,IEN,k,j,i) = u_out.e;
         u.d = u_out.d;  // (needed if there are scalars below)
 
-        if (entropy_fix_){
+        if (entropy_fix_&&(!entropy_fix_used)){
           // compute total entropy
           Real q = glower[1][1]*w.vx*w.vx + 2.0*glower[1][2]*w.vx*w.vy + 2.0*glower[1][3]*w.vx*w.vz
                 + glower[2][2]*w.vy*w.vy + 2.0*glower[2][3]*w.vy*w.vz
