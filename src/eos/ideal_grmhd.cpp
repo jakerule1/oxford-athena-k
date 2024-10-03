@@ -73,6 +73,7 @@ void IdealGRMHD::ConsToPrim(DvceArray5D<Real> &cons, const DvceFaceFld4D<Real> &
   int entropyIdx = (entropy_fix_) ? nmhd+nscal-1 : -1;
   auto c2p_test_ = pmy_pack->pmhd->c2p_test;
   auto &sigma_cold_cut_ = pmy_pack->pmhd->sigma_cold_cut;
+  auto &kin_ratio_ = pmy_pack->pmhd->kin_ratio;
   auto &r_tfix_cut_ = pmy_pack->pmhd->r_tfix_cut;
 
   auto &flat = pmy_pack->pcoord->coord_data.is_minkowski;
@@ -338,7 +339,7 @@ void IdealGRMHD::ConsToPrim(DvceArray5D<Real> &cons, const DvceFaceFld4D<Real> &
       if (entropy_fix_ && !entropy_fix_turnoff_) {
         // fix the prim in strongly magnetized region or cells that fail the variable inversion
         //( Kinetic_Ratio >= (1-1e-5))
-        if ((c2p_failure || (( Kinetic_Ratio >= (1-1e-5))&&(Kinetic_Ratio < 1)))&&(rad>1.25*r_excise))  {
+        if ((c2p_failure || (( Kinetic_Ratio >= (1-kin_ratio_))&&(Kinetic_Ratio < 1)))&&(rad>1.25*r_excise))  {
           // compute the entropy fix
           //|| (sigma_cold > sigma_cold_cut_)
           bool dfloor_used_in_fix=false, efloor_used_in_fix=false;

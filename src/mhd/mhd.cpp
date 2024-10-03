@@ -129,6 +129,7 @@ MHD::MHD(MeshBlockPack *ppack, ParameterInput *pin) :
     if (pmy_pack->pcoord->is_general_relativistic) {
       entropy_fix = pin->GetBoolean("mhd","entropy_fix");
       entropy_fix_turnoff = pin->GetOrAddBoolean("mhd","entropy_fix_turnoff",false);
+      kin_ratio = pin->GetOrAddReal("mhd","kin_ratio",1.0e-2);
       sigma_cold_cut = pin->GetOrAddReal("mhd","sigma_cold_cut",1.0e3);
       r_tfix_cut = pin->GetOrAddReal("mhd","r_tfix_cut",2.0);
     } else {
