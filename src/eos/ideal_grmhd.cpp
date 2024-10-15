@@ -303,7 +303,7 @@ void IdealGRMHD::ConsToPrim(DvceArray5D<Real> &cons, const DvceFaceFld4D<Real> &
 
       // Calculate the ratio of Kinetic energy in the fluid part to check if entropy-based inversion is needed
       Real s_prim = cons(m,entropyIdx,k,j,i)/cons(m,IDN,k,j,i);
-      Real entropy_temp = s_prim*pow(w.d,gm1);
+      Real s_old = gm1*w_old.e*pow(w_old.d,-eos.gamma); 
       Real Kinetic_Ratio = 0.0;
       if (!c2p_failure) {
         Real q = glower[1][1]*w.vx*w.vx + 2.0*glower[1][2]*w.vx*w.vy + 2.0*glower[1][3]*w.vx*w.vz
@@ -342,7 +342,7 @@ void IdealGRMHD::ConsToPrim(DvceArray5D<Real> &cons, const DvceFaceFld4D<Real> &
       if (entropy_fix_ && !entropy_fix_turnoff_) {
         // fix the prim in strongly magnetized region or cells that fail the variable inversion
         //( Kinetic_Ratio >= (1-1e-5))
-        if ((c2p_failure || (( Kinetic_Ratio >= (1-kin_ratio_))&&(Kinetic_Ratio < 1)))&&(rad>r_hor)&&(entropy_temp<entropy_cutoff_))  {
+        if ((c2p_failure || (( Kinetic_Ratio >= (1-kin_ratio_))&&(Kinetic_Ratio < 1)))&&(rad>r_hor)&&((fabs(s_prim-s_old)/s_old)<entropy_cutoff_))  {
           // compute the entropy fix
           //|| (sigma_cold > sigma_cold_cut_)
           bool dfloor_used_in_fix=false, efloor_used_in_fix=false;
