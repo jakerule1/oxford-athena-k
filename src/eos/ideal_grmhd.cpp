@@ -366,15 +366,15 @@ void IdealGRMHD::ConsToPrim(DvceArray5D<Real> &cons, const DvceFaceFld4D<Real> &
         bool Space_Variability_Switch = energy_variation < space_variability_cutoff_*local_energy_min;
 
         Real max_l = 0;
-        Real w, cs_sq, va_sq, cms_sq, b_sq;
+        Real h, cs_sq, va_sq, cms_sq, b_sq;
         Real qq, u0_norm, u0, u1, u2, u3, u_1, u_2, u_3;
         Real b0_, b1_, b2_, b3_, b_0, b_1, b_2, b_3;
 
         for (int kk=km1; kk<=kp1; ++kk) {
           for (int jj=jm1; jj<=jp1; ++jj) {
             for (int ii=im1; ii<=ip1; ++ii) {
-              w = w0_old_(m,IDN,kk,jj,ii) + eos.gamma * w0_old_(m,IEN,kk,jj,ii);
-              cs_sq = eos.gamma * w0_old_(m,IEN,kk,jj,ii) / (gm1*w);
+              h = w0_old_(m,IDN,kk,jj,ii) + eos.gamma * w0_old_(m,IEN,kk,jj,ii);
+              cs_sq = eos.gamma * w0_old_(m,IEN,kk,jj,ii) / (gm1*h);
 
               qq = glower[1][1]*w0_old_(m,IVX,kk,jj,ii)*w0_old_(m,IVX,kk,jj,ii)
                     +2.0*glower[1][2]*w0_old_(m,IVX,kk,jj,ii)*w0_old_(m,IVY,kk,jj,ii)
@@ -407,7 +407,7 @@ void IdealGRMHD::ConsToPrim(DvceArray5D<Real> &cons, const DvceFaceFld4D<Real> &
               b_3 = glower[3][0]*b0_ + glower[3][1]*b1_ + glower[3][2]*b2_ + glower[3][3]*b3_;
 
               b_sq = b0_*b_0 + b1_*b_1 + b2_*b_2 + b3_*b_3;
-              va_sq = b_sq / (b_sq + w);
+              va_sq = b_sq / (b_sq + h);
 
               cms_sq = cs_sq + va_sq - cs_sq * va_sq;
 
