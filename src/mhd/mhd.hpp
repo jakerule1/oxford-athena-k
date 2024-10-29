@@ -125,8 +125,10 @@ class MHD {
   bool entropy_fix = false;
   bool entropy_fix_turnoff = false;
   Real sigma_cold_cut;
-  Real kin_ratio;
-  Real entropy_cutoff;
+  Real therm_ratio;
+  Real time_variability_cutoff;
+  Real space_variability_cutoff;
+  Real velocity_div_cutoff;
   Real r_tfix_cut;
   bool c2p_test = false;
   bool is_radiation_enabled = false;

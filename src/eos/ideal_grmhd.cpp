@@ -73,8 +73,10 @@ void IdealGRMHD::ConsToPrim(DvceArray5D<Real> &cons, const DvceFaceFld4D<Real> &
   int entropyIdx = (entropy_fix_) ? nmhd+nscal-1 : -1;
   auto c2p_test_ = pmy_pack->pmhd->c2p_test;
   auto &sigma_cold_cut_ = pmy_pack->pmhd->sigma_cold_cut;
-  auto &kin_ratio_ = pmy_pack->pmhd->kin_ratio;
-  auto &entropy_cutoff_ = pmy_pack->pmhd->entropy_cutoff;
+  auto &therm_ratio_ = pmy_pack->pmhd->therm_ratio;
+  auto &time_variability_cutoff_ = pmy_pack->pmhd->time_variability_cutoff;
+  auto &space_variability_cutoff_ = pmy_pack->pmhd->time_variability_cutoff;
+  auto &velocity_div_cutoff_ = pmy_pack->pmhd->velocity_div_cutoff;
   auto &r_tfix_cut_ = pmy_pack->pmhd->r_tfix_cut;
 
   auto &flat = pmy_pack->pcoord->coord_data.is_minkowski;
@@ -301,27 +303,7 @@ void IdealGRMHD::ConsToPrim(DvceArray5D<Real> &cons, const DvceFaceFld4D<Real> &
       //   sigma_cold = b_sq/w.d;
       // }
 
-      // Calculate the ratio of Kinetic energy in the fluid part to check if entropy-based inversion is needed
-      Real s_prim = cons(m,entropyIdx,k,j,i)/cons(m,IDN,k,j,i);
-      Real s_old = gm1*w_old.e*pow(w_old.d,-eos.gamma); 
-      Real Kinetic_Ratio = 0.0;
-      if (!c2p_failure) {
-        Real q = glower[1][1]*w.vx*w.vx + 2.0*glower[1][2]*w.vx*w.vy + 2.0*glower[1][3]*w.vx*w.vz
-                + glower[2][2]*w.vy*w.vy + 2.0*glower[2][3]*w.vy*w.vz
-                + glower[3][3]*w.vz*w.vz;
-        Real lor = sqrt(1.0 + q);
-        
-        Real magnetic_component=0;
-
-        if (b2>0){
-          Real rperp_sqrd = s2/SQR(u_sr.d)-SQR(rpar)/b2;
-          magnetic_component = 0.5*b2*(1+rperp_sqrd/SQR(lor+b2/u_sr.d));
-        }
-
-        Real fluid_energy = (u_sr.e - magnetic_component)/u_sr.d;
-
-        Kinetic_Ratio = (lor-1)/fluid_energy;
-      }
+      
       // apply temperature fix
       if (is_radiation_enabled_ && temperature_fix) {
         if ((sigma_cold > sigma_cold_cut_) && (rv < r_tfix_cut_)) { // different criterion can be used here
@@ -342,7 +324,104 @@ void IdealGRMHD::ConsToPrim(DvceArray5D<Real> &cons, const DvceFaceFld4D<Real> &
       if (entropy_fix_ && !entropy_fix_turnoff_) {
         // fix the prim in strongly magnetized region or cells that fail the variable inversion
         //( Kinetic_Ratio >= (1-1e-5))
-        if ((c2p_failure || (( Kinetic_Ratio >= (1-kin_ratio_))&&(Kinetic_Ratio < 1)))&&(rad>r_hor)&&((fabs(s_prim-s_old)/s_old)<entropy_cutoff_))  {
+        
+        // Calculate the ratio of Kinetic energy in the fluid part to check if entropy-based inversion is needed
+        Real s_prim = cons(m,entropyIdx,k,j,i)/cons(m,IDN,k,j,i);
+        Real s_old = gm1*w_old.e*pow(w_old.d,-eos.gamma); 
+        
+        bool Time_Variability_Switch = (fabs(s_prim-s_old)/s_old)<time_variability_cutoff_; 
+
+        Real Thermal_Ratio = 1;
+        if (!c2p_failure) {
+          Real q = glower[1][1]*w.vx*w.vx + 2.0*glower[1][2]*w.vx*w.vy + 2.0*glower[1][3]*w.vx*w.vz
+                  + glower[2][2]*w.vy*w.vy + 2.0*glower[2][3]*w.vy*w.vz
+                  + glower[3][3]*w.vz*w.vz;
+          Real lor = sqrt(1.0 + q);
+          
+          Real magnetic_component=0;
+
+          if (b2>0){
+            Real rperp_sqrd = s2/SQR(u_sr.d)-SQR(rpar)/b2;
+            magnetic_component = 0.5*b2*(1+rperp_sqrd/SQR(lor+b2/u_sr.d));
+          }
+
+          Real fluid_energy = (u_sr.e - magnetic_component)/u_sr.d;
+
+          Thermal_Ratio = 1-(lor-1)/fluid_energy;
+        }
+
+        bool Thermal_Switch = (Thermal_Ratio <= therm_ratio_)&&(Thermal_Ratio > 0);
+
+        int km1 = (k-1 < kl) ? kl : k-1;
+        int kp1 = (k+1 > ku) ? ku : k+1;
+        int jm1 = (j-1 < jl) ? jl : j-1;
+        int jp1 = (j+1 > ju) ? ju : j+1;
+        int im1 = (i-1 < il) ? il : i-1;
+        int ip1 = (i+1 > iu) ? iu : i+1;
+
+        energy_variation = fabs(w0_old_(m,IEN,k,j,ip1)-w0_old_(m,IEN,k,j,im1))+fabs(w0_old_(m,IEN,k,jp1,i)-w0_old_(m,IEN,k,jm1,i))+fabs(w0_old_(m,IEN,kp1,j,i)-w0_old_(m,IEN,km1,j,i));
+        
+        local_energy_min = fmin(fmin(fmin(w0_old_(m,IEN,k,j,ip1),w0_old_(m,IEN,k,j,im1)),w0_old_(m,IEN,k,jp1,i)),fmin(fmin(w0_old_(m,IEN,k,jm1,i),w0_old_(m,IEN,kp1,j,i)),fmin(w0_old_(m,IEN,km1,j,i),w0_old_(m,IEN,k,j,i))));
+
+        bool Space_Variability_Switch = energy_variation < space_variability_cutoff_*local_energy_min;
+
+        Real max_l = 0;
+        Real w, cs_sq, va_sq, cms_sq, b_sq;
+        Real qq, u0_norm, u0, u1, u2, u3, u_1, u_2, u_3;
+        Real b0_, b1_, b2_, b3_, b_0, b_1, b_2, b_3;
+
+        for (int kk=km1; kk<=kp1; ++kk) {
+          for (int jj=jm1; jj<=jp1; ++jj) {
+            for (int ii=im1; ii<=ip1; ++ii) {
+              w = w0_old_(m,IDN,kk,jj,ii) + eos.gamma * w0_old_(m,IEN,kk,jj,ii);
+              cs_sq = eos.gamma * w0_old_(m,IEN,kk,jj,ii) / (gm1*w);
+
+              qq = glower[1][1]*w0_old_(m,IVX,kk,jj,ii)*w0_old_(m,IVX,kk,jj,ii)
+                    +2.0*glower[1][2]*w0_old_(m,IVX,kk,jj,ii)*w0_old_(m,IVY,kk,jj,ii)
+                    +2.0*glower[1][3]*w0_old_(m,IVX,kk,jj,ii)*w0_old_(m,IVZ,kk,jj,ii)
+                    +glower[2][2]*w0_old_(m,IVY,kk,jj,ii)*w0_old_(m,IVY,kk,jj,ii)
+                    +2.0*glower[2][3]*w0_old_(m,IVY,kk,jj,ii)*w0_old_(m,IVZ,kk,jj,ii)
+                    +glower[3][3]*w0_old_(m,IVZ,kk,jj,ii)*w0_old_(m,IVZ,kk,jj,ii);
+              
+              u0_norm = sqrt(1.0 + qq);
+              u0 = u0_norm/alpha;
+              u1 = w0_old_(m,IVX,kk,jj,ii) - alpha * u0_norm * gupper[0][1];
+              u2 = w0_old_(m,IVY,kk,jj,ii) - alpha * u0_norm * gupper[0][2];
+              u3 = w0_old_(m,IVZ,kk,jj,ii) - alpha * u0_norm * gupper[0][3];
+
+              // lower vector indices
+              u_1 = glower[1][0]*u0 + glower[1][1]*u1 + glower[1][2]*u2 + glower[1][3]*u3;
+              u_2 = glower[2][0]*u0 + glower[2][1]*u1 + glower[2][2]*u2 + glower[2][3]*u3;
+              u_3 = glower[3][0]*u0 + glower[3][1]*u1 + glower[3][2]*u2 + glower[3][3]*u3;
+
+              // calculate 4-magnetic field
+              b0_ = u_1*w0_old_(m,IBX,kk,jj,ii) + u_2*w0_old_(m,IBY,kk,jj,ii) + u_3*w0_old_(m,IBZ,kk,jj,ii);
+              b1_ = (w0_old_(m,IBX,kk,jj,ii) + b0_ * u1) / u0;
+              b2_ = (w0_old_(m,IBY,kk,jj,ii) + b0_ * u2) / u0;
+              b3_ = (w0_old_(m,IBZ,kk,jj,ii) + b0_ * u3) / u0;
+
+              // lower vector indices
+              b_0 = glower[0][0]*b0_ + glower[0][1]*b1_ + glower[0][2]*b2_ + glower[0][3]*b3_;
+              b_1 = glower[1][0]*b0_ + glower[1][1]*b1_ + glower[1][2]*b2_ + glower[1][3]*b3_;
+              b_2 = glower[2][0]*b0_ + glower[2][1]*b1_ + glower[2][2]*b2_ + glower[2][3]*b3_;
+              b_3 = glower[3][0]*b0_ + glower[3][1]*b1_ + glower[3][2]*b2_ + glower[3][3]*b3_;
+
+              b_sq = b0_*b_0 + b1_*b_1 + b2_*b_2 + b3_*b_3;
+              va_sq = b_sq / (b_sq + w);
+
+              cms_sq = cs_sq + va_sq - cs_sq * va_sq;
+
+              max_l = fmax(max_l,sqrt(cms_sq));
+            } 
+          } 
+        }
+
+        Real div_vel = (w0_old_(m,IVX,k,j,ip1) - w0_old_(m,IVX,k,j,im1)) + (w0_old_(m,IVY,k,jp1,i) - w0_old_(m,IVY,k,jm1,i))
+                  + (w0_old_(m,IVZ,kp1,j,i) - w0_old_(m,IVZ,km1,j,i));
+
+        bool Velocity_Switch = -velocity_div_cutoff_ * max_l < div_vel;
+
+        if ((c2p_failure || Kinetic_Switch )&&(rad>r_hor) && Time_Variability_Switch && Space_Variability_Switch && Velocity_Switch){
           // compute the entropy fix
           //|| (sigma_cold > sigma_cold_cut_)
           bool dfloor_used_in_fix=false, efloor_used_in_fix=false;
@@ -523,6 +602,8 @@ void IdealGRMHD::ConsToPrim(DvceArray5D<Real> &cons, const DvceFaceFld4D<Real> &
     pmy_pack->pmesh->ecounter.neos_fail   += nfail_;
     pmy_pack->pmesh->ecounter.maxit_c2p = maxit_;
   }
+
+
 
   // fallback for the failure of variable inversion that uses the average of the valid primitives in adjacent cells
   if ((cellavg_fix_turn_on_) && !(only_testfloors)) {
