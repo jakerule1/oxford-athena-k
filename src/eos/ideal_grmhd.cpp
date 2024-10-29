@@ -359,9 +359,9 @@ void IdealGRMHD::ConsToPrim(DvceArray5D<Real> &cons, const DvceFaceFld4D<Real> &
         int im1 = (i-1 < il) ? il : i-1;
         int ip1 = (i+1 > iu) ? iu : i+1;
 
-        energy_variation = fabs(w0_old_(m,IEN,k,j,ip1)-w0_old_(m,IEN,k,j,im1))+fabs(w0_old_(m,IEN,k,jp1,i)-w0_old_(m,IEN,k,jm1,i))+fabs(w0_old_(m,IEN,kp1,j,i)-w0_old_(m,IEN,km1,j,i));
+        Real energy_variation = fabs(w0_old_(m,IEN,k,j,ip1)-w0_old_(m,IEN,k,j,im1))+fabs(w0_old_(m,IEN,k,jp1,i)-w0_old_(m,IEN,k,jm1,i))+fabs(w0_old_(m,IEN,kp1,j,i)-w0_old_(m,IEN,km1,j,i));
         
-        local_energy_min = fmin(fmin(fmin(w0_old_(m,IEN,k,j,ip1),w0_old_(m,IEN,k,j,im1)),w0_old_(m,IEN,k,jp1,i)),fmin(fmin(w0_old_(m,IEN,k,jm1,i),w0_old_(m,IEN,kp1,j,i)),fmin(w0_old_(m,IEN,km1,j,i),w0_old_(m,IEN,k,j,i))));
+        Real local_energy_min = fmin(fmin(fmin(w0_old_(m,IEN,k,j,ip1),w0_old_(m,IEN,k,j,im1)),w0_old_(m,IEN,k,jp1,i)),fmin(fmin(w0_old_(m,IEN,k,jm1,i),w0_old_(m,IEN,kp1,j,i)),fmin(w0_old_(m,IEN,km1,j,i),w0_old_(m,IEN,k,j,i))));
 
         bool Space_Variability_Switch = energy_variation < space_variability_cutoff_*local_energy_min;
 
@@ -421,7 +421,7 @@ void IdealGRMHD::ConsToPrim(DvceArray5D<Real> &cons, const DvceFaceFld4D<Real> &
 
         bool Velocity_Switch = -velocity_div_cutoff_ * max_l < div_vel;
 
-        if ((c2p_failure || Kinetic_Switch )&&(rad>r_hor) && Time_Variability_Switch && Space_Variability_Switch && Velocity_Switch){
+        if ((c2p_failure || Thermal_Switch )&&(rad>r_hor) && Time_Variability_Switch && Space_Variability_Switch && Velocity_Switch){
           // compute the entropy fix
           //|| (sigma_cold > sigma_cold_cut_)
           bool dfloor_used_in_fix=false, efloor_used_in_fix=false;
