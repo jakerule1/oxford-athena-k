@@ -131,7 +131,7 @@ MHD::MHD(MeshBlockPack *ppack, ParameterInput *pin) :
       entropy_fix_turnoff = pin->GetOrAddBoolean("mhd","entropy_fix_turnoff",false);
       therm_ratio = pin->GetOrAddReal("mhd","therm_ratio",1.0e-2);
       time_variability_cutoff = pin->GetOrAddReal("mhd","time_variability_cutoff",1.0e-4);
-      space_variability_cutoff = pin->GetOrAddReal("mhd","time_variability_cutoff",1.0e-1);
+      space_variability_cutoff = pin->GetOrAddReal("mhd","space_variability_cutoff",1.0e-1);
       velocity_div_cutoff = pin->GetOrAddReal("mhd","velocity_div_cutoff",1.0e-2);
       sigma_cold_cut = pin->GetOrAddReal("mhd","sigma_cold_cut",1.0e3);
       r_tfix_cut = pin->GetOrAddReal("mhd","r_tfix_cut",2.0);
