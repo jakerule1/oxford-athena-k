@@ -365,63 +365,63 @@ void IdealGRMHD::ConsToPrim(DvceArray5D<Real> &cons, const DvceFaceFld4D<Real> &
 
         bool Space_Variability_Switch = energy_variation < space_variability_cutoff_*local_energy_min;
 
-        Real max_l = 0;
-        Real h, cs_sq, va_sq, cms_sq, b_sq;
-        Real qq, u0_norm, u0, u1, u2, u3, u_1, u_2, u_3;
-        Real b0_, b1_, b2_, b3_, b_0, b_1, b_2, b_3;
+        // Real max_l = 0;
+        // Real h, cs_sq, va_sq, cms_sq, b_sq;
+        // Real qq, u0_norm, u0, u1, u2, u3, u_1, u_2, u_3;
+        // Real b0_, b1_, b2_, b3_, b_0, b_1, b_2, b_3;
 
-        for (int kk=km1; kk<=kp1; ++kk) {
-          for (int jj=jm1; jj<=jp1; ++jj) {
-            for (int ii=im1; ii<=ip1; ++ii) {
-              h = w0_old_(m,IDN,kk,jj,ii) + eos.gamma * w0_old_(m,IEN,kk,jj,ii);
-              cs_sq = eos.gamma * w0_old_(m,IEN,kk,jj,ii) / (gm1*h);
+        // for (int kk=km1; kk<=kp1; ++kk) {
+        //   for (int jj=jm1; jj<=jp1; ++jj) {
+        //     for (int ii=im1; ii<=ip1; ++ii) {
+        //       h = w0_old_(m,IDN,kk,jj,ii) + eos.gamma * w0_old_(m,IEN,kk,jj,ii);
+        //       cs_sq = eos.gamma * w0_old_(m,IEN,kk,jj,ii) / (gm1*h);
 
-              qq = glower[1][1]*w0_old_(m,IVX,kk,jj,ii)*w0_old_(m,IVX,kk,jj,ii)
-                    +2.0*glower[1][2]*w0_old_(m,IVX,kk,jj,ii)*w0_old_(m,IVY,kk,jj,ii)
-                    +2.0*glower[1][3]*w0_old_(m,IVX,kk,jj,ii)*w0_old_(m,IVZ,kk,jj,ii)
-                    +glower[2][2]*w0_old_(m,IVY,kk,jj,ii)*w0_old_(m,IVY,kk,jj,ii)
-                    +2.0*glower[2][3]*w0_old_(m,IVY,kk,jj,ii)*w0_old_(m,IVZ,kk,jj,ii)
-                    +glower[3][3]*w0_old_(m,IVZ,kk,jj,ii)*w0_old_(m,IVZ,kk,jj,ii);
+        //       qq = glower[1][1]*w0_old_(m,IVX,kk,jj,ii)*w0_old_(m,IVX,kk,jj,ii)
+        //             +2.0*glower[1][2]*w0_old_(m,IVX,kk,jj,ii)*w0_old_(m,IVY,kk,jj,ii)
+        //             +2.0*glower[1][3]*w0_old_(m,IVX,kk,jj,ii)*w0_old_(m,IVZ,kk,jj,ii)
+        //             +glower[2][2]*w0_old_(m,IVY,kk,jj,ii)*w0_old_(m,IVY,kk,jj,ii)
+        //             +2.0*glower[2][3]*w0_old_(m,IVY,kk,jj,ii)*w0_old_(m,IVZ,kk,jj,ii)
+        //             +glower[3][3]*w0_old_(m,IVZ,kk,jj,ii)*w0_old_(m,IVZ,kk,jj,ii);
               
-              u0_norm = sqrt(1.0 + qq);
-              u0 = u0_norm/alpha;
-              u1 = w0_old_(m,IVX,kk,jj,ii) - alpha * u0_norm * gupper[0][1];
-              u2 = w0_old_(m,IVY,kk,jj,ii) - alpha * u0_norm * gupper[0][2];
-              u3 = w0_old_(m,IVZ,kk,jj,ii) - alpha * u0_norm * gupper[0][3];
+        //       u0_norm = sqrt(1.0 + qq);
+        //       u0 = u0_norm/alpha;
+        //       u1 = w0_old_(m,IVX,kk,jj,ii) - alpha * u0_norm * gupper[0][1];
+        //       u2 = w0_old_(m,IVY,kk,jj,ii) - alpha * u0_norm * gupper[0][2];
+        //       u3 = w0_old_(m,IVZ,kk,jj,ii) - alpha * u0_norm * gupper[0][3];
 
-              // lower vector indices
-              u_1 = glower[1][0]*u0 + glower[1][1]*u1 + glower[1][2]*u2 + glower[1][3]*u3;
-              u_2 = glower[2][0]*u0 + glower[2][1]*u1 + glower[2][2]*u2 + glower[2][3]*u3;
-              u_3 = glower[3][0]*u0 + glower[3][1]*u1 + glower[3][2]*u2 + glower[3][3]*u3;
+        //       // lower vector indices
+        //       u_1 = glower[1][0]*u0 + glower[1][1]*u1 + glower[1][2]*u2 + glower[1][3]*u3;
+        //       u_2 = glower[2][0]*u0 + glower[2][1]*u1 + glower[2][2]*u2 + glower[2][3]*u3;
+        //       u_3 = glower[3][0]*u0 + glower[3][1]*u1 + glower[3][2]*u2 + glower[3][3]*u3;
 
-              // calculate 4-magnetic field
-              b0_ = u_1*w0_old_(m,IBX,kk,jj,ii) + u_2*w0_old_(m,IBY,kk,jj,ii) + u_3*w0_old_(m,IBZ,kk,jj,ii);
-              b1_ = (w0_old_(m,IBX,kk,jj,ii) + b0_ * u1) / u0;
-              b2_ = (w0_old_(m,IBY,kk,jj,ii) + b0_ * u2) / u0;
-              b3_ = (w0_old_(m,IBZ,kk,jj,ii) + b0_ * u3) / u0;
+        //       // calculate 4-magnetic field
+        //       b0_ = u_1*w0_old_(m,IBX,kk,jj,ii) + u_2*w0_old_(m,IBY,kk,jj,ii) + u_3*w0_old_(m,IBZ,kk,jj,ii);
+        //       b1_ = (w0_old_(m,IBX,kk,jj,ii) + b0_ * u1) / u0;
+        //       b2_ = (w0_old_(m,IBY,kk,jj,ii) + b0_ * u2) / u0;
+        //       b3_ = (w0_old_(m,IBZ,kk,jj,ii) + b0_ * u3) / u0;
 
-              // lower vector indices
-              b_0 = glower[0][0]*b0_ + glower[0][1]*b1_ + glower[0][2]*b2_ + glower[0][3]*b3_;
-              b_1 = glower[1][0]*b0_ + glower[1][1]*b1_ + glower[1][2]*b2_ + glower[1][3]*b3_;
-              b_2 = glower[2][0]*b0_ + glower[2][1]*b1_ + glower[2][2]*b2_ + glower[2][3]*b3_;
-              b_3 = glower[3][0]*b0_ + glower[3][1]*b1_ + glower[3][2]*b2_ + glower[3][3]*b3_;
+        //       // lower vector indices
+        //       b_0 = glower[0][0]*b0_ + glower[0][1]*b1_ + glower[0][2]*b2_ + glower[0][3]*b3_;
+        //       b_1 = glower[1][0]*b0_ + glower[1][1]*b1_ + glower[1][2]*b2_ + glower[1][3]*b3_;
+        //       b_2 = glower[2][0]*b0_ + glower[2][1]*b1_ + glower[2][2]*b2_ + glower[2][3]*b3_;
+        //       b_3 = glower[3][0]*b0_ + glower[3][1]*b1_ + glower[3][2]*b2_ + glower[3][3]*b3_;
 
-              b_sq = b0_*b_0 + b1_*b_1 + b2_*b_2 + b3_*b_3;
-              va_sq = b_sq / (b_sq + h);
+        //       b_sq = b0_*b_0 + b1_*b_1 + b2_*b_2 + b3_*b_3;
+        //       va_sq = b_sq / (b_sq + h);
 
-              cms_sq = cs_sq + va_sq - cs_sq * va_sq;
+        //       cms_sq = cs_sq + va_sq - cs_sq * va_sq;
 
-              max_l = fmax(max_l,sqrt(cms_sq));
-            } 
-          } 
-        }
+        //       max_l = fmax(max_l,sqrt(cms_sq));
+        //     } 
+        //   } 
+        // }
 
-        Real div_vel = (w0_old_(m,IVX,k,j,ip1) - w0_old_(m,IVX,k,j,im1)) + (w0_old_(m,IVY,k,jp1,i) - w0_old_(m,IVY,k,jm1,i))
-                  + (w0_old_(m,IVZ,kp1,j,i) - w0_old_(m,IVZ,km1,j,i));
+        // Real div_vel = (w0_old_(m,IVX,k,j,ip1) - w0_old_(m,IVX,k,j,im1)) + (w0_old_(m,IVY,k,jp1,i) - w0_old_(m,IVY,k,jm1,i))
+        //           + (w0_old_(m,IVZ,kp1,j,i) - w0_old_(m,IVZ,km1,j,i));
 
-        bool Velocity_Switch = -velocity_div_cutoff_ * max_l < div_vel;
+        // bool Velocity_Switch = -velocity_div_cutoff_ * max_l < div_vel;
 
-        if ((c2p_failure || Thermal_Switch )&&(rad>r_hor) && Time_Variability_Switch && Space_Variability_Switch && Velocity_Switch){
+        if ((c2p_failure || Thermal_Switch )&&(rad>r_hor) && Time_Variability_Switch && Space_Variability_Switch ){ //&& Velocity_Switch
           // compute the entropy fix
           //|| (sigma_cold > sigma_cold_cut_)
           bool dfloor_used_in_fix=false, efloor_used_in_fix=false;
