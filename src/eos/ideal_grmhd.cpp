@@ -75,7 +75,7 @@ void IdealGRMHD::ConsToPrim(DvceArray5D<Real> &cons, const DvceFaceFld4D<Real> &
   auto &sigma_cold_cut_ = pmy_pack->pmhd->sigma_cold_cut;
   auto &therm_ratio_ = pmy_pack->pmhd->therm_ratio;
   auto &time_variability_cutoff_ = pmy_pack->pmhd->time_variability_cutoff;
-  auto &space_variability_cutoff_ = pmy_pack->pmhd->time_variability_cutoff;
+  auto &space_variability_cutoff_ = pmy_pack->pmhd->space_variability_cutoff;
   auto &velocity_div_cutoff_ = pmy_pack->pmhd->velocity_div_cutoff;
   auto &r_tfix_cut_ = pmy_pack->pmhd->r_tfix_cut;
 
@@ -334,8 +334,8 @@ void IdealGRMHD::ConsToPrim(DvceArray5D<Real> &cons, const DvceFaceFld4D<Real> &
         Real Thermal_Ratio = 1;
         if (!c2p_failure) {
           Real q = glower[1][1]*w.vx*w.vx + 2.0*glower[1][2]*w.vx*w.vy + 2.0*glower[1][3]*w.vx*w.vz
-                  + glower[2][2]*w.vy*w.vy + 2.0*glower[2][3]*w.vy*w.vz
-                  + glower[3][3]*w.vz*w.vz;
+                 + glower[2][2]*w.vy*w.vy + 2.0*glower[2][3]*w.vy*w.vz
+                 + glower[3][3]*w.vz*w.vz;
           Real lor = sqrt(1.0 + q);
           
           Real magnetic_component=0;
@@ -421,7 +421,7 @@ void IdealGRMHD::ConsToPrim(DvceArray5D<Real> &cons, const DvceFaceFld4D<Real> &
 
         // bool Velocity_Switch = -velocity_div_cutoff_ * max_l < div_vel;
 
-        if ((c2p_failure || Thermal_Switch )&&(rad>r_hor) && Time_Variability_Switch && Space_Variability_Switch ){ //&& Velocity_Switch
+        if ((c2p_failure || Thermal_Switch ) && (rad>r_hor) && Time_Variability_Switch && Space_Variability_Switch ){ //&& Velocity_Switch
           // compute the entropy fix
           //|| (sigma_cold > sigma_cold_cut_)
           bool dfloor_used_in_fix=false, efloor_used_in_fix=false;
