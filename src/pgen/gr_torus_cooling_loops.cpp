@@ -1903,6 +1903,13 @@ void Cooling(Mesh *pm, const Real bdt) {
     par_for("User_Source_Cooling", DevExeSpace(), 0,nmb-1,ks,ke+1,js,je+1,is,ie+1,
     KOKKOS_LAMBDA(int m, int k, int j, int i) {
       
+      int km1 = (k-1 < ks) ? ks : k-1;
+      int kp1 = (k+1 > ke) ? ke : k+1;
+      int jm1 = (j-1 < js) ? js : j-1;
+      int jp1 = (j+1 > je) ? je : j+1;
+      int im1 = (i-1 < is) ? is : i-1;
+      int ip1 = (i+1 > ie) ? ie : i+1;
+
       //Find cell center position
       Real &x1min = size.d_view(m).x1min;
       Real &x1max = size.d_view(m).x1max;
@@ -1956,12 +1963,14 @@ void Cooling(Mesh *pm, const Real bdt) {
 
       //Find entropy constant
       //Real s = (w0_(m,IEN,k,j,i)*gm1)/pow(w0_(m,IDN,k,j,i),gamma);
-      Real s = w0_(m,entropyIdx,k,j,i);
+      Real s_av = (1/7)*(w0_(m,entropyIdx,k,j,i)+w0_(m,entropyIdx,kp1,j,i)+w0_(m,entropyIdx,km1,j,i)+w0_(m,entropyIdx,k,jp1,i)+w0_(m,entropyIdx,k,jm1,i)+w0_(m,entropyIdx,k,j,ip1)+w0_(m,entropyIdx,k,j,im1));
+
+      Real en_av = (1/7)*(w0_(m,IEN,k,j,i)+w0_(m,IEN,kp1,j,i)+w0_(m,IEN,km1,j,i)+w0_(m,IEN,k,jp1,i)+w0_(m,IEN,k,jm1,i)+w0_(m,IEN,k,j,ip1)+w0_(m,IEN,k,j,im1));
 
       //Find Comoving Cooling Rate
-      Real CoolingRate = (w0_(m,IEN,k,j,i)*log(s/s_targ))/Cooling_Timescale;
+      Real CoolingRate = (en_av*log(s_av/s_targ))/Cooling_Timescale;
 
-      bool Bound = (u_0*(1+gamma*w0_(m,IEN,k,j,i)/w0_(m,IDN,k,j,i))) > - 1.0;
+      //bool Bound = (u_0*(1+gamma*w0_(m,IEN,k,j,i)/w0_(m,IDN,k,j,i))) > - 1.0;
       
       if((CoolingRate>0)&&(Cooling_Timescale>bdt)){
         //Update conserved energy density and momenta
