@@ -1933,6 +1933,8 @@ void Cooling(Mesh *pm, const Real bdt) {
 
       Real gm1 = gamma - 1.0;
 
+      Real r_hor = 1.0 + sqrt(1.0 - SQR(spin));
+
       //Get Metric
       Real glower[4][4], gupper[4][4];
       ComputeMetricAndInverse(x1, x2, x3, is_minkowski, spin,
@@ -1965,14 +1967,14 @@ void Cooling(Mesh *pm, const Real bdt) {
       //Real s = (w0_(m,IEN,k,j,i)*gm1)/pow(w0_(m,IDN,k,j,i),gamma);
       Real s_av = (1/7)*(w0_(m,entropyIdx,k,j,i)+w0_(m,entropyIdx,kp1,j,i)+w0_(m,entropyIdx,km1,j,i)+w0_(m,entropyIdx,k,jp1,i)+w0_(m,entropyIdx,k,jm1,i)+w0_(m,entropyIdx,k,j,ip1)+w0_(m,entropyIdx,k,j,im1));
 
-      Real en_av = (1/7)*(w0_(m,IEN,k,j,i)+w0_(m,IEN,kp1,j,i)+w0_(m,IEN,km1,j,i)+w0_(m,IEN,k,jp1,i)+w0_(m,IEN,k,jm1,i)+w0_(m,IEN,k,j,ip1)+w0_(m,IEN,k,j,im1));
+      //Real en_av = (1/7)*(w0_(m,IEN,k,j,i)+w0_(m,IEN,kp1,j,i)+w0_(m,IEN,km1,j,i)+w0_(m,IEN,k,jp1,i)+w0_(m,IEN,k,jm1,i)+w0_(m,IEN,k,j,ip1)+w0_(m,IEN,k,j,im1));
 
       //Find Comoving Cooling Rate
-      Real CoolingRate = (en_av*log(s_av/s_targ))/Cooling_Timescale;
+      Real CoolingRate = (w0_(m,IEN,k,j,i)*log(s_av/s_targ))/Cooling_Timescale;
 
       //bool Bound = (u_0*(1+gamma*w0_(m,IEN,k,j,i)/w0_(m,IDN,k,j,i))) > - 1.0;
       
-      if((CoolingRate>0)&&(Cooling_Timescale>bdt)){
+      if((CoolingRate>0)&&(Cooling_Timescale>10*bdt)&&(r>r_hor)){
         //Update conserved energy density and momenta
         u0_(m,IEN,k,j,i) -= CoolingRate*bdt*u_0;
         u0_(m,IM1,k,j,i) -= CoolingRate*bdt*u_1;
