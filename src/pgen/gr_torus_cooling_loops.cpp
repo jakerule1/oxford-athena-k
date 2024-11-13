@@ -1983,18 +1983,22 @@ void Cooling(Mesh *pm, const Real bdt) {
 
       int ii, jj, kk;
       Real CoolingRate = 0;
-      Real CoolingRate_ent = 0;
+      Real CoolingRate_entr = 0;
       for (int idx=0; idx<7; ++idx) {
 
         ii = directions[idx][0];
         jj = directions[idx][1];
         kk = directions[idx][2];
 
-        CoolingRate += w0_(m,IEN,kk,jj,ii)*log(w0_(m,entropyIdx,kk,jj,ii)/s_targ)/Cooling_Timescale;
-        CoolingRate_ent += gm1*w0_(m,IEN,kk,jj,ii)*log(w0_(m,entropyIdx,kk,jj,ii)/s_targ)/(Cooling_Timescale*pow(w0_(m,IDN,kk,jj,ii),gm1));
+        Real energy = w0_(m,IEN,kk,jj,ii);
+        Real entr = w0_(m,entropyIdx,kk,jj,ii);
+        Real dens = w0_(m,IDN,kk,jj,ii);
+
+        CoolingRate += energy*log(entr/s_targ)/Cooling_Timescale;
+        CoolingRate_entr += gm1*energy*log(entr/s_targ)/(Cooling_Timescale*pow(dens,gm1));
       }
       CoolingRate = CoolingRate/7.0;
-      CoolingRate_ent = CoolingRate_ent/7.0;
+      CoolingRate_entr = CoolingRate_entr/7.0;
       //Find Comoving Cooling Rate
       //Real CoolingRate = (w0_(m,IEN,k,j,i)*log(s_av/s_targ))/Cooling_Timescale;
 
@@ -2006,7 +2010,7 @@ void Cooling(Mesh *pm, const Real bdt) {
         u0_(m,IM1,k,j,i) -= CoolingRate*bdt*u_1;
         u0_(m,IM2,k,j,i) -= CoolingRate*bdt*u_2;
         u0_(m,IM3,k,j,i) -= CoolingRate*bdt*u_3;
-        u0_(m,entropyIdx,k,j,i) -= CoolingRate_ent*bdt;
+        u0_(m,entropyIdx,k,j,i) -= CoolingRate_entr*bdt;
       };
     });
   };
