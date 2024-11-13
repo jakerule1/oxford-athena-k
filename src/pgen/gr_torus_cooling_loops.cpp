@@ -1965,14 +1965,38 @@ void Cooling(Mesh *pm, const Real bdt) {
 
       //Find entropy constant
       //Real s = (w0_(m,IEN,k,j,i)*gm1)/pow(w0_(m,IDN,k,j,i),gamma);
-      Real s_av = (w0_(m,entropyIdx,k,j,i)+w0_(m,entropyIdx,kp1,j,i)+w0_(m,entropyIdx,km1,j,i)
-        +w0_(m,entropyIdx,k,jp1,i)+w0_(m,entropyIdx,k,jm1,i)+w0_(m,entropyIdx,k,j,ip1)
-        +w0_(m,entropyIdx,k,j,im1))/7.0;
+      //Real s_av = (w0_(m,entropyIdx,k,j,i)+w0_(m,entropyIdx,kp1,j,i)+w0_(m,entropyIdx,km1,j,i)
+      //  +w0_(m,entropyIdx,k,jp1,i)+w0_(m,entropyIdx,k,jm1,i)+w0_(m,entropyIdx,k,j,ip1)
+      //  +w0_(m,entropyIdx,k,j,im1))/7.0;
 
       //Real en_av = (1.0/7.0)*(w0_(m,IEN,k,j,i)+w0_(m,IEN,kp1,j,i)+w0_(m,IEN,km1,j,i)+w0_(m,IEN,k,jp1,i)+w0_(m,IEN,k,jm1,i)+w0_(m,IEN,k,j,ip1)+w0_(m,IEN,k,j,im1));
+      
+      int directions[7][3] = {
+        {i, j, k},
+        {im1, j, k},
+        {ip1, j, k},
+        {i, jm1, k},
+        {i, jp1, k},
+        {i, j, km1},  
+        {i, j, kp1}  
+        };
 
+      int ii, jj, kk;
+      Real CoolingRate = 0;
+      Real CoolingRate_ent = 0;
+      for (int idx=0; idx<7; ++idx) {
+
+        ii = directions[idx][0];
+        jj = directions[idx][1];
+        kk = directions[idx][2];
+
+        CoolingRate += w0_(m,IEN,kk,jj,ii)*log(w0_(m,entropyIdx,kk,jj,ii)/s_targ)/Cooling_Timescale;
+        CoolingRate_ent += gm1*w0_(m,IEN,kk,jj,ii)*log(w0_(m,entropyIdx,kk,jj,ii)/s_targ)/(Cooling_Timescale*pow(w0_(m,IDN,kk,jj,ii),gm1));
+      }
+      CoolingRate = CoolingRate/7.0;
+      CoolingRate_ent = CoolingRate_ent/7.0;
       //Find Comoving Cooling Rate
-      Real CoolingRate = (w0_(m,IEN,k,j,i)*log(s_av/s_targ))/Cooling_Timescale;
+      //Real CoolingRate = (w0_(m,IEN,k,j,i)*log(s_av/s_targ))/Cooling_Timescale;
 
       //bool Bound = (u_0*(1+gamma*w0_(m,IEN,k,j,i)/w0_(m,IDN,k,j,i))) > - 1.0;
       
@@ -1982,7 +2006,7 @@ void Cooling(Mesh *pm, const Real bdt) {
         u0_(m,IM1,k,j,i) -= CoolingRate*bdt*u_1;
         u0_(m,IM2,k,j,i) -= CoolingRate*bdt*u_2;
         u0_(m,IM3,k,j,i) -= CoolingRate*bdt*u_3;
-        u0_(m,entropyIdx,k,j,i) -= gm1*CoolingRate*bdt/pow(w0_(m,IDN,k,j,i),gm1);
+        u0_(m,entropyIdx,k,j,i) -= CoolingRate_ent*bdt;
       };
     });
   };
