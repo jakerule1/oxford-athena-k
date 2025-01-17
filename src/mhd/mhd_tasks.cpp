@@ -25,6 +25,7 @@
 #include "bvals/bvals.hpp"
 #include "shearing_box/shearing_box.hpp"
 #include "mhd/mhd.hpp"
+#include "dyn_grmhd/dyn_grmhd.hpp"
 
 namespace mhd {
 //----------------------------------------------------------------------------------------
@@ -192,7 +193,7 @@ TaskStatus MHD::Fluxes(Driver *pdrive, int stage) {
 
   // Add viscous, resistive, heat-flux, etc fluxes
   if (pvisc != nullptr) {
-    pvisc->IsotropicViscousFlux(w0, pvisc->nu, peos->eos_data, uflx);
+    pvisc->IsotropicViscousFlux(w0, pvisc->nu_iso, peos->eos_data, uflx);
   }
   if ((presist != nullptr) && (peos->eos_data.is_ideal)) {
     presist->OhmicEnergyFlux(b0, uflx);
@@ -257,8 +258,11 @@ TaskStatus MHD::MHDSrcTerms(Driver *pdrive, int stage) {
   if (psrc->shearing_box) psrc->ShearingBox(w0, bcc0, peos->eos_data, beta_dt, u0);
 
   // Add coordinate source terms in GR.  Again, must be computed with only primitives.
-  if (pmy_pack->pcoord->is_general_relativistic) {
+  if (pmy_pack->pcoord->is_general_relativistic &&
+      !pmy_pack->pcoord->is_dynamical_relativistic) {
     pmy_pack->pcoord->CoordSrcTerms(w0, bcc0, peos->eos_data, beta_dt, u0);
+  } else if (pmy_pack->pcoord->is_dynamical_relativistic) {
+    pmy_pack->pdyngr->AddCoordTerms(w0, bcc0, beta_dt, u0, pmy_pack->pmesh->mb_indcs.ng);
   }
 
   // Add user source terms

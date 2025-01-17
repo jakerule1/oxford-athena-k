@@ -175,6 +175,14 @@ Mesh::Mesh(ParameterInput *pin) :
   multilevel = (adaptive || pin->GetString("mesh_refinement","refinement") == "static")
     ?  true : false;
 
+  // FIXME: The shearing box is not currently compatible with SMR/AMR
+  if (multilevel && pin->DoesBlockExist("shearing_box")) {
+    std::cout << "### FATAL ERROR in " << __FILE__ << " at line " << __LINE__ << std::endl
+        << "Shearing box is not currently compatible with mesh refinement"
+        << std::endl;
+    std::exit(EXIT_FAILURE);
+  }
+
   // error check physical size of mesh (root level) from input file.
   if (mesh_size.x1max <= mesh_size.x1min) {
     std::cout << "### FATAL ERROR in " << __FILE__ << " at line " << __LINE__ << std::endl
@@ -357,7 +365,7 @@ void Mesh::PrintMeshDiagnostics() {
   if ((max_level - root_level) > 1) {
     int nb_per_plevel[max_level];      // NOLINT(runtime/arrays)
     float cost_per_plevel[max_level];  // NOLINT(runtime/arrays)
-    for (int i=0; i<=max_level; ++i) {
+    for (int i=0; i<max_level; ++i) {
       nb_per_plevel[i] = 0;
       cost_per_plevel[i] = 0.0;
     }
@@ -504,6 +512,8 @@ BoundaryFlag Mesh::GetBoundaryFlag(const std::string& input_string) {
     return BoundaryFlag::user;
   } else if (input_string == "periodic") {
     return BoundaryFlag::periodic;
+  } else if (input_string == "vacuum") {
+    return BoundaryFlag::vacuum;
   } else if (input_string == "shear_periodic") {
     return BoundaryFlag::shear_periodic;
   } else if (input_string == "undef") {
@@ -635,6 +645,7 @@ void Mesh::AddCoordinatesAndPhysics(ParameterInput *pinput) {
   // Determine total number of particles across all ranks
   particles::Particles *ppart = pmb_pack->ppart;
   if (ppart != nullptr) {
+    nprtcl_thisrank = 0;
     for (int n=0; n<nmb_packs_thisrank; ++n) {
       nprtcl_thisrank += pmb_pack->ppart->nprtcl_thispack;
     }

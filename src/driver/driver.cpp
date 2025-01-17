@@ -19,9 +19,10 @@
 #include "outputs/outputs.hpp"
 #include "hydro/hydro.hpp"
 #include "mhd/mhd.hpp"
+#include "z4c/z4c.hpp"
+#include "dyn_grmhd/dyn_grmhd.hpp"
 #include "ion-neutral/ion-neutral.hpp"
 #include "radiation/radiation.hpp"
-#include "z4c/z4c.hpp"
 #include "driver.hpp"
 
 #if MPI_PARALLEL_ENABLED
@@ -226,11 +227,38 @@ Driver::Driver(ParameterInput *pin, Mesh *pmesh, Real wtlim, Kokkos::Timer* ptim
       a_twid[3][2] = (4.0*(b + e + a) - 1.0)/6.0;
       a_twid[3][3] = 2.0*(1.0 - a)/3.0;
       a_impl = a;
+    } else if (integrator == "imex+") {
+      // IMEX(2,3,2): Krapp et al. (2024, arXiv:2310.04435), Eq.30.
+      // three-stage explicit, two-stage implicit, second-order ImEx
+      // Note explicit steps may not reduce to RK2 based on the parameters chosen
+      nimp_stages = 2;
+      nexp_stages = 3;
+      cfl_limit = 1.0;
+      Real gamma = 1.7071067811865475;   // 1 + 1/sqrt(2)
+      gam0[0] = 0.0;
+      gam1[0] = 1.0;
+      beta[0] = gamma;
+
+      gam0[1] = (2.0*gamma-1.0)/(2.0*gamma*gamma);
+      gam1[1] = 1.0-(2.0*gamma-1.0)/(2.0*gamma*gamma);
+      beta[1] = 1.0/(2.0*gamma);
+
+      gam0[2] = 1.0;
+      gam1[2] = 0.0;
+      beta[2] = 0.0;
+
+      a_twid[0][0] = (1.0-2*gamma*gamma)/(2.0*gamma);
+      a_twid[0][1] = 0.0;
+
+      a_twid[1][0] = 0.0;
+      a_twid[1][1] = 0.0;
+
+      a_impl = gamma;
     // Error, unrecognized integrator name.
     } else {
       std::cout << "### FATAL ERROR in " << __FILE__ << " at line " << __LINE__
          << std::endl << "integrator=" << integrator << " not implemented. "
-         << "Valid choices are [rk1,rk2,rk3,imex2,imex3]." << std::endl;
+         << "Valid choices are [rk1,rk2,rk3,rk4,imex2,imex3]." << std::endl;
       exit(EXIT_FAILURE);
     }
   }
@@ -483,7 +511,9 @@ void Driver::OutputCycleDiagnostics(Mesh *pm) {
 //  const int dtprcsn = std::numeric_limits<Real>::max_digits10 - 1;
   const int dtprcsn = 6;
   if (pm->ncycle % ndiag == 0) {
-    std::cout << "cycle=" << pm->ncycle << std::scientific << std::setprecision(dtprcsn)
+    Real elapsed = pwall_clock_->seconds();
+    std::cout << "elapsed=" << std::scientific << std::setprecision(dtprcsn) << elapsed
+              << " cycle=" << pm->ncycle
               << " time=" << pm->time << " dt=" << pm->dt << std::endl;
   }
   return;
@@ -516,6 +546,20 @@ Real Driver::UpdateWallClock() {
 void Driver::InitBoundaryValuesAndPrimitives(Mesh *pm) {
   // Note: with MPI, sends on ALL MBs must be complete before receives execute
 
+  // Initialize Z4c
+  z4c::Z4c *pz4c = pm->pmb_pack->pz4c;
+  if (pz4c != nullptr) {
+    (void) pz4c->RestrictU(this, 0);
+    (void) pz4c->InitRecv(this, -1);  // stage < 0 suppresses InitFluxRecv
+    (void) pz4c->SendU(this, 0);
+    (void) pz4c->ClearSend(this, -1);
+    (void) pz4c->ClearRecv(this, -1);
+    (void) pz4c->RecvU(this, 0);
+    (void) pz4c->Z4cBoundaryRHS(this, 0);
+    (void) pz4c->ApplyPhysicalBCs(this, 0);
+    (void) pz4c->Prolongate(this, 0);
+  }
+
   // Initialize HYDRO: ghost zones and primitive variables (everywhere)
   // includes communications for shearing box boundaries
   hydro::Hydro *phydro = pm->pmb_pack->phydro;
@@ -539,6 +583,7 @@ void Driver::InitBoundaryValuesAndPrimitives(Mesh *pm) {
   // Initialize MHD: ghost zones and primitive variables (everywhere)
   // includes communications for shearing box boundaries
   mhd::MHD *pmhd = pm->pmb_pack->pmhd;
+  dyngr::DynGRMHD *pdyngr = pm->pmb_pack->pdyngr;
   if (pmhd != nullptr) {
     (void) pmhd->RestrictU(this, 0);
     (void) pmhd->RestrictB(this, 0);
@@ -557,7 +602,14 @@ void Driver::InitBoundaryValuesAndPrimitives(Mesh *pm) {
     (void) pmhd->RecvB_Shr(this, 0);
     (void) pmhd->ApplyPhysicalBCs(this, 0);
     (void) pmhd->Prolongate(this, 0);
-    (void) pmhd->ConToPrim(this, 0);
+    if (pdyngr == nullptr) {
+      (void) pmhd->ConToPrim(this, 0);
+    } else {
+      if (pz4c != nullptr) {
+        (void) pz4c->ConvertZ4cToADM(this, 0);
+      }
+      (void) pdyngr->ConToPrim(this, 0);
+    }
   }
 
   // Initialize radiation: ghost zones and intensity (everywhere)
@@ -572,20 +624,6 @@ void Driver::InitBoundaryValuesAndPrimitives(Mesh *pm) {
     (void) prad->RecvI(this, 0);
     (void) prad->ApplyPhysicalBCs(this, 0);
     (void) prad->Prolongate(this, 0);
-  }
-
-  // Initialize Z4c
-  z4c::Z4c *pz4c = pm->pmb_pack->pz4c;
-  if (pz4c != nullptr) {
-    (void) pz4c->RestrictU(this, 0);
-    (void) pz4c->InitRecv(this, -1);  // stage < 0 suppresses InitFluxRecv
-    (void) pz4c->SendU(this, 0);
-    (void) pz4c->ClearSend(this, -1);
-    (void) pz4c->ClearRecv(this, -1);
-    (void) pz4c->RecvU(this, 0);
-    (void) pz4c->Z4cBoundaryRHS(this, 0);
-    (void) pz4c->ApplyPhysicalBCs(this, 0);
-    (void) pz4c->Prolongate(this, 0);
   }
 
   return;
