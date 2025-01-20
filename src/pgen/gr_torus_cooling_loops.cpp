@@ -1891,6 +1891,14 @@ void Cooling(Mesh *pm, const Real bdt) {
     par_for("User_Source_Cooling", DevExeSpace(), 0,nmb-1,ks,ke+1,js,je+1,is,ie+1,
     KOKKOS_LAMBDA(int m, int k, int j, int i) {
       
+      int km1 = (k-1 < ks) ? ks : k-1;
+      int kp1 = (k+1 > ke) ? ke : k+1;
+      int jm1 = (j-1 < js) ? js : j-1;
+      int jp1 = (j+1 > je) ? je : j+1;
+      int im1 = (i-1 < is) ? is : i-1;
+      int ip1 = (i+1 > ie) ? ie : i+1;
+
+
       //Find cell center position
       Real &x1min = size.d_view(m).x1min;
       Real &x1max = size.d_view(m).x1max;
@@ -1913,6 +1921,8 @@ void Cooling(Mesh *pm, const Real bdt) {
       Real R = r*sin(theta);
 
       Real gm1 = gamma - 1.0;
+
+      Real r_hor = 1.0 + sqrt(1.0 - SQR(spin));
 
       //Get Metric
       Real glower[4][4], gupper[4][4];
@@ -1943,11 +1953,35 @@ void Cooling(Mesh *pm, const Real bdt) {
       Real Cooling_Timescale = 2.0*M_PI*(spin+pow(R,1.5));
 
       //Find entropy constant
-      Real s = (w0_(m,IEN,k,j,i)*gm1)/pow(w0_(m,IDN,k,j,i),gamma);
+      //Real s = (w0_(m,IEN,k,j,i)*gm1)/pow(w0_(m,IDN,k,j,i),gamma);
 
+      int directions[7][3] = {
+        {i, j, k},
+        {im1, j, k},
+        {ip1, j, k},
+        {i, jm1, k},
+        {i, jp1, k},
+        {i, j, km1},
+        {i, j, kp1}
+        };
+
+      int ii, jj, kk;
+      Real CoolingRate = 0;
+
+      for (int idx=0; idx<7; ++idx) {
+
+        ii = directions[idx][0];
+        jj = directions[idx][1];
+        kk = directions[idx][2];
+
+        Real energy = w0_(m,IEN,kk,jj,ii);
+        Real entr = (w0_(m,IEN,k,j,i)*gm1)/pow(w0_(m,IDN,k,j,i),gamma);
+        CoolingRate += energy*log(entr/s_targ)/Cooling_Timescale;
+
+      CoolingRate = CoolingRate/7.0;
       //Find Comoving Cooling Rate
-      Real CoolingRate = (w0_(m,IEN,k,j,i)*log(s/s_targ))/Cooling_Timescale;
-      if((CoolingRate>0)&&(Cooling_Timescale>bdt)){
+      //Real CoolingRate = (w0_(m,IEN,k,j,i)*log(s/s_targ))/Cooling_Timescale;
+      if((CoolingRate>0)&&(Cooling_Timescale>bdt)&&(r>r_hor)){
         //Update conserved energy density and momenta
         u0_(m,IEN,k,j,i) -= CoolingRate*bdt*u_0;
         u0_(m,IM1,k,j,i) -= CoolingRate*bdt*u_1;
