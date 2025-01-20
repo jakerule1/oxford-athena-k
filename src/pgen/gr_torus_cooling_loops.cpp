@@ -1977,7 +1977,7 @@ void Cooling(Mesh *pm, const Real bdt) {
         Real energy = w0_(m,IEN,kk,jj,ii);
         Real entr = (w0_(m,IEN,k,j,i)*gm1)/pow(w0_(m,IDN,k,j,i),gamma);
         CoolingRate += energy*log(entr/s_targ)/Cooling_Timescale;
-
+      }
       CoolingRate = CoolingRate/7.0;
       //Find Comoving Cooling Rate
       //Real CoolingRate = (w0_(m,IEN,k,j,i)*log(s/s_targ))/Cooling_Timescale;
