@@ -248,47 +248,40 @@ void IdealGRMHD::ConsToPrim(DvceArray5D<Real> &cons, const DvceFaceFld4D<Real> &
       int im1 = (i-1 < il) ? il : i-1;
       int ip1 = (i+1 > iu) ? iu : i+1;
 
-      int count_jake = 0;
-      if (gm1*prim(m,IEN,k,j,i) <= eos.pfloor) count_jake+=1;
-      if (gm1*prim(m,IEN,km1,j,i) <= eos.pfloor) count_jake+=1;
-      if (gm1*prim(m,IEN,kp1,j,i) <= eos.pfloor) count_jake+=1;
-      if (gm1*prim(m,IEN,k,jm1,i) <= eos.pfloor) count_jake+=1;
-      if (gm1*prim(m,IEN,k,jp1,i) <= eos.pfloor) count_jake+=1;
-      if (gm1*prim(m,IEN,k,j,im1) <= eos.pfloor) count_jake+=1;
-      if (gm1*prim(m,IEN,k,j,ip1) <= eos.pfloor) count_jake+=1;
+      int pfloor_count = 0;
+      if (gm1*prim(m,IEN,k,j,i) <= eos.pfloor) pfloor_count+=1;
+      if (gm1*prim(m,IEN,km1,j,i) <= eos.pfloor) pfloor_count+=1;
+      if (gm1*prim(m,IEN,kp1,j,i) <= eos.pfloor) pfloor_count+=1;
+      if (gm1*prim(m,IEN,k,jm1,i) <= eos.pfloor) pfloor_count+=1;
+      if (gm1*prim(m,IEN,k,jp1,i) <= eos.pfloor) pfloor_count+=1;
+      if (gm1*prim(m,IEN,k,j,im1) <= eos.pfloor) pfloor_count+=1;
+      if (gm1*prim(m,IEN,k,j,ip1) <= eos.pfloor) pfloor_count+=1;
 
-      // Assign fallback state if inversion fails
-      if ((!c2p_flag_(m,k,j,i) || ( (count_jake>=1) && (count_jake<=2) )) && !(excised)) { //jake
+      // Smooth if local area contains 1 or 2 cells near the pressure floor 
+      if (((pfloor_count>=1) && (pfloor_count<=2)) && !(excised)) { //jake
 
         // initialize primitive fallback
         MHDPrim1D w;
         w.d = 0.0; w.vx = 0.0; w.vy = 0.0; w.vz = 0.0; w.e = 0.0;
-        // Load cell-centered fields
-        // if (c2p_test_) {
-        //   // use input CC fields if only testing floors with FOFC
-        //   w.bx = bcc(m,IBX,k,j,i);
-        //   w.by = bcc(m,IBY,k,j,i);
-        //   w.bz = bcc(m,IBZ,k,j,i);
-        // } else {
-        //   // else use simple linear average of face-centered fields
-        //   w.bx = 0.5*(b.x1f(m,k,j,i) + b.x1f(m,k,j,i+1));
-        //   w.by = 0.5*(b.x2f(m,k,j,i) + b.x2f(m,k,j+1,i));
-        //   w.bz = 0.5*(b.x3f(m,k,j,i) + b.x3f(m,k+1,j,i));
-        // }
+        //Load cell-centered fields
+        //use simple linear average of face-centered fields
+        w.bx = 0.5*(b.x1f(m,k,j,i) + b.x1f(m,k,j,i+1));
+        w.by = 0.5*(b.x2f(m,k,j,i) + b.x2f(m,k,j+1,i));
+        w.bz = 0.5*(b.x3f(m,k,j,i) + b.x3f(m,k+1,j,i));
 
         // Add the primitives of valid adjacent cells
         int n_count = 0;
         for (int kk=km1; kk<=kp1; ++kk) {
           for (int jj=jm1; jj<=jp1; ++jj) {
             for (int ii=im1; ii<=ip1; ++ii) {
-              if (c2p_flag_(m,kk,jj,ii) && !(excised)) {
+              if ((gm1*prim(m,IEN,kk,jj,ii) > eos.pfloor) && !(excised)) {
                 w.d  = w.d  + prim(m,IDN,kk,jj,ii);
                 w.vx = w.vx + prim(m,IVX,kk,jj,ii);
                 w.vy = w.vy + prim(m,IVY,kk,jj,ii);
                 w.vz = w.vz + prim(m,IVZ,kk,jj,ii);
                 w.e  = w.e  + prim(m,IEN,kk,jj,ii);
                 n_count += 1;
-              } // endif c2p_flag_(m,kk,jj,ii)
+              } // endif over pfloor
             } // endfor ii
           } // endfor jj
         } // endfor kk
@@ -308,13 +301,12 @@ void IdealGRMHD::ConsToPrim(DvceArray5D<Real> &cons, const DvceFaceFld4D<Real> &
           w.e  = w.e/n_count;
         }
 
-        if (!c2p_flag_(m,k,j,i)) { // if variable inversion fails
-          prim(m,IDN,k,j,i) = w.d;
-          prim(m,IVX,k,j,i) = w.vx;
-          prim(m,IVY,k,j,i) = w.vy;
-          prim(m,IVZ,k,j,i) = w.vz;
-          prim(m,IEN,k,j,i) = w.e;
-        }
+        prim(m,IDN,k,j,i) = w.d;
+        prim(m,IVX,k,j,i) = w.vx;
+        prim(m,IVY,k,j,i) = w.vy;
+        prim(m,IVZ,k,j,i) = w.vz;
+        prim(m,IEN,k,j,i) = w.e;
+
         // } else if (smooth_flag_(m,k,j,i)) { // if extra smooth is needed
         //   prim(m,IDN,k,j,i) = w.d;
         //   prim(m,IVX,k,j,i) = w.vx;
@@ -338,7 +330,6 @@ void IdealGRMHD::ConsToPrim(DvceArray5D<Real> &cons, const DvceFaceFld4D<Real> &
 
         Real glower[4][4], gupper[4][4];
         ComputeMetricAndInverse(x1v, x2v, x3v, flat, spin, glower, gupper);
-        Real alpha = sqrt(-1.0/gupper[0][0]);
         // Reset conserved variables
         HydCons1D u;
         SingleP2C_IdealGRMHD(glower, gupper, w, eos.gamma, u);
@@ -348,20 +339,7 @@ void IdealGRMHD::ConsToPrim(DvceArray5D<Real> &cons, const DvceFaceFld4D<Real> &
         cons(m,IM3,k,j,i) = u.mz;
         cons(m,IEN,k,j,i) = u.e;
 
-        if (entropy_fix_){
-          // compute total entropy
-          Real q = glower[1][1]*w.vx*w.vx + 2.0*glower[1][2]*w.vx*w.vy + 2.0*glower[1][3]*w.vx*w.vz
-                + glower[2][2]*w.vy*w.vy + 2.0*glower[2][3]*w.vy*w.vz
-                + glower[3][3]*w.vz*w.vz;
-          Real lor = sqrt(1.0 + q);
-          Real u0 = lor/alpha;
-
-          // assign total entropy to the first scalar
-          cons(m,entropyIdx,k,j,i) = gm1*w.e / pow(w.d,gm1) * u0;
-          prim(m,entropyIdx,k,j,i) = cons(m,entropyIdx,k,j,i)/u.d;
-        }
-
-      } // endif (!c2p_flag_(m,k,j,i) && !(excised))
+      } // endif (pfloor_count in regon && !(excised))
     }); // end_par_for 'adjacent_cellavg_fix'
   } // endif (cellavg_fix_turn_on_)
 
