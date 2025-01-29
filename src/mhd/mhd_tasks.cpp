@@ -162,6 +162,9 @@ TaskStatus MHD::CopyCons(Driver *pdrive, int stage) {
     Kokkos::deep_copy(DevExeSpace(), b1.x1f, b0.x1f);
     Kokkos::deep_copy(DevExeSpace(), b1.x2f, b0.x2f);
     Kokkos::deep_copy(DevExeSpace(), b1.x3f, b0.x3f);
+
+    // copy the prim as the fallback state
+    Kokkos::deep_copy(DevExeSpace(), w0_old, w0);
   }
   return TaskStatus::complete;
 }

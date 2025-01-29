@@ -101,6 +101,7 @@ class MHD {
   DvceArray5D<Real> w0;    // primitive variables
   DvceFaceFld4D<Real> b0;  // face-centered magnetic fields
   DvceArray5D<Real> bcc0;  // cell-centered magnetic fields
+  DvceArray5D<Real> w0_old; // fall-back primitive variables
 
   DvceArray5D<Real> coarse_u0;    // conserved variables on 2x coarser grid (for SMR/AMR)
   DvceArray5D<Real> coarse_w0;    // primitive variables on 2x coarser grid (for SMR/AMR)

@@ -52,7 +52,8 @@ MHD::MHD(MeshBlockPack *ppack, ParameterInput *pin) :
     e3_cc("e3_cc",1,1,1,1),
     utest("utest",1,1,1,1,1),
     bcctest("bcctest",1,1,1,1,1),
-    fofc("fofc",1,1,1,1) {
+    fofc("fofc",1,1,1,1),
+    w0_old("w0_old",1,1,1,1,1) {
   // Total number of MeshBlocks on this rank to be used in array dimensioning
   int nmb = std::max((ppack->nmb_thispack), (ppack->pmesh->nmb_maxperrank));
 
@@ -136,6 +137,10 @@ MHD::MHD(MeshBlockPack *ppack, ParameterInput *pin) :
     Kokkos::realloc(b0.x1f, nmb, ncells3, ncells2, ncells1+1);
     Kokkos::realloc(b0.x2f, nmb, ncells3, ncells2+1, ncells1);
     Kokkos::realloc(b0.x3f, nmb, ncells3+1, ncells2, ncells1);
+
+    //Allocate fall-back primitive array
+    Kokkos::realloc(w0_old, nmb, (nmhd+nscalars), ncells3, ncells2, ncells1);
+
   }
 
   // allocate memory for conserved variables on coarse mesh
