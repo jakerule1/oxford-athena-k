@@ -175,6 +175,8 @@ MHD::MHD(MeshBlockPack *ppack, ParameterInput *pin) :
     psbox_b = nullptr;
   }
 
+  cellavg_fix_turn_on = pin->GetOrAddBoolean("mhd","cellavg_fix_turn_on",true); //cell averaging smoothing
+
   // for time-evolving problems, continue to construct methods, allocate arrays
   if (evolution_t.compare("stationary") != 0) {
     // determine if FOFC is enabled

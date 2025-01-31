@@ -144,6 +144,8 @@ class MHD {
   DvceArray4D<bool> fofc;  // flag for each cell to indicate if FOFC is needed
   bool use_fofc = false;   // flag to enable FOFC
 
+  bool cellavg_fix_turn_on; // Turn cell averaging smoothing fix on
+
   // container to hold names of TaskIDs
   MHDTaskIDs id;
 

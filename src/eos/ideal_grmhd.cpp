@@ -258,7 +258,7 @@ void IdealGRMHD::ConsToPrim(DvceArray5D<Real> &cons, const DvceFaceFld4D<Real> &
       if (gm1*prim(m,IEN,k,j,ip1) <= eos.pfloor) pfloor_count+=1;
 
       // Smooth if local area contains 1 or 2 cells near the pressure floor 
-      if (((pfloor_count>=1) && (pfloor_count<=4)) && !(excised)) { //jake
+      if (((pfloor_count>=1) && (pfloor_count<=2)) && !(excised)) { //jake
 
         // initialize primitive fallback
         MHDPrim1D w;
