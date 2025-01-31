@@ -51,7 +51,7 @@ void IdealGRMHD::ConsToPrim(DvceArray5D<Real> &cons, const DvceFaceFld4D<Real> &
   Real gm1 = eos_data.gamma - 1.0;
 
   bool &cellavg_fix_turn_on_ = pmy_pack->pmhd->cellavg_fix_turn_on;
-
+  auto &w0_old_ = pmy_pack->pmhd->w0_old;
   auto &flat = pmy_pack->pcoord->coord_data.is_minkowski;
   auto &spin = pmy_pack->pcoord->coord_data.bh_spin;
   auto &use_excise = pmy_pack->pcoord->coord_data.bh_excise;
