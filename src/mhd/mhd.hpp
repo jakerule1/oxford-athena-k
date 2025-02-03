@@ -187,8 +187,12 @@ class MHD {
   TaskStatus ConToPrim(Driver *d, int stage);
   TaskStatus NewTimeStep(Driver *d, int stage);
   // ...in "after_stagen_tl" task list
+
   TaskStatus ClearSend(Driver *d, int stage);
   TaskStatus ClearRecv(Driver *d, int stage);  // also in Driver::Initialize
+
+  // ...in "after_timeintegrator_tl" task list
+  TaskStatus OperatorSplitSrcTerms(Driver *d, int stage);
 
   // CalculateFluxes function templated over Riemann Solvers
   template <MHD_RSolver T>

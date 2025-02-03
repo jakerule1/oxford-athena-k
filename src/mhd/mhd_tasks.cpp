@@ -80,6 +80,10 @@ void MHD::AssembleMHDTasks(std::map<std::string, std::shared_ptr<TaskList>> tl) 
   // task list anyways to catch potential bugs in MPI communication logic
   id.crecv = tl["after_stagen"]->AddTask(&MHD::ClearRecv, this, id.csend);
 
+  //assemble "after_timeintegrator" task list
+
+  id.opsplitsrc = tl["after_timeintegrator"]->AddTask(&MHD::OperatorSplitSrcTerms, this, none);
+
   return;
 }
 
@@ -269,8 +273,20 @@ TaskStatus MHD::MHDSrcTerms(Driver *pdrive, int stage) {
   }
 
   // Add user source terms
+  // if (pmy_pack->pmesh->pgen->user_srcs) {
+  //   (pmy_pack->pmesh->pgen->user_srcs_func)(pmy_pack->pmesh, beta_dt);
+  // }
+
+  return TaskStatus::complete;
+}
+
+// Operator Split Source Terms
+TaskStatus MHD::OperatorSplitSrcTerms(Driver *pdrive, int stage) {
+  Real dt = (pmy_pack->pmesh->dt);
+
+  //Add user source terms
   if (pmy_pack->pmesh->pgen->user_srcs) {
-    (pmy_pack->pmesh->pgen->user_srcs_func)(pmy_pack->pmesh, beta_dt);
+    (pmy_pack->pmesh->pgen->user_srcs_func)(pmy_pack->pmesh, dt);
   }
 
   return TaskStatus::complete;
