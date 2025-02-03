@@ -1868,7 +1868,7 @@ void Cooling(Mesh *pm, const Real dt) {
   MeshBlockPack *pmbp = pm->pmb_pack;
   
   if (pmbp->prad == nullptr){
-    Real gamma;
+    Real gamma, pfloor;
     DvceArray5D<Real> w0_, u0_;
     if (pmbp->phydro != nullptr) {
       gamma = pmbp->phydro->peos->eos_data.gamma;
