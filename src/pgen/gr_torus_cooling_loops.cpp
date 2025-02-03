@@ -1994,17 +1994,16 @@ void Cooling(Mesh *pm, const Real dt) {
 
         //Update internal energy
         w0_(m,IEN,k,j,i) = Cooled_Energy;
-        
-        //Update Conserved Variables
-        if (pmbp->phydro != nullptr) {
-          pmbp->phydro->peos->PrimToCons(w0_, u0_, is, ie, js, je, ks, ke);
-        } 
-        else if (pmbp->pmhd != nullptr) {
-          auto &bcc0_ = pmbp->pmhd->bcc0;
-          pmbp->pmhd->peos->PrimToCons(w0_, bcc0_, u0_, is, ie, js, je, ks, ke);
-        }
       };
     });
+    //Update Conserved Variables
+    if (pmbp->phydro != nullptr) {
+      pmbp->phydro->peos->PrimToCons(w0_, u0_, is, ie, js, je, ks, ke);
+    } 
+    else if (pmbp->pmhd != nullptr) {
+      auto &bcc0_ = pmbp->pmhd->bcc0;
+      pmbp->pmhd->peos->PrimToCons(w0_, bcc0_, u0_, is, ie, js, je, ks, ke);
+    }
   };
   return;
 }
