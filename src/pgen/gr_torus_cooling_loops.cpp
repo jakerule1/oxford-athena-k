@@ -1974,7 +1974,7 @@ void Cooling(Mesh *pm, const Real dt) {
         ii = directions[idx][0];
         jj = directions[idx][1];
         kk = directions[idx][2];
-        Real entr = (w0_(m,IEN,kk,jj,ii)*gm1)/pow(w0_(m,IDN,kk,jj,ii),gamma);
+        Real entr = (w0_(m,IEN,k,j,i)*gm1)/pow(w0_(m,IDN,k,j,i),gamma);
         CoolingRate += log(entr/s_targ);
       }
 
@@ -1996,14 +1996,14 @@ void Cooling(Mesh *pm, const Real dt) {
         w0_(m,IEN,k,j,i) = Cooled_Energy;
       };
     });
-    // //Update Conserved Variables
-    // if (pmbp->phydro != nullptr) {
-    //   pmbp->phydro->peos->PrimToCons(w0_, u0_, is, ie, js, je, ks, ke);
-    // } 
-    // else if (pmbp->pmhd != nullptr) {
-    //   auto &bcc0_ = pmbp->pmhd->bcc0;
-    //   pmbp->pmhd->peos->PrimToCons(w0_, bcc0_, u0_, is, ie, js, je, ks, ke);
-    // }
+    //Update Conserved Variables
+    if (pmbp->phydro != nullptr) {
+      pmbp->phydro->peos->PrimToCons(w0_, u0_, is, ie, js, je, ks, ke);
+    } 
+    else if (pmbp->pmhd != nullptr) {
+      auto &bcc0_ = pmbp->pmhd->bcc0;
+      pmbp->pmhd->peos->PrimToCons(w0_, bcc0_, u0_, is, ie, js, je, ks, ke);
+    }
   };
   return;
 }
