@@ -78,6 +78,7 @@ struct MHDTaskIDs {
   TaskID newdt;
   TaskID csend;
   TaskID crecv;
+  TaskID opsplitsrc;
 };
 
 namespace mhd {
