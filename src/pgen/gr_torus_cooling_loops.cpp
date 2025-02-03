@@ -1865,145 +1865,145 @@ void Cooling(Mesh *pm, const Real dt) {
   //ParameterInput param_in;
   //ParameterInput *pin = new ParameterInput();
   //delete pin;
-  // MeshBlockPack *pmbp = pm->pmb_pack;
+  MeshBlockPack *pmbp = pm->pmb_pack;
   
-  // if (pmbp->prad == nullptr){
-  //   Real gamma, pfloor;
-  //   DvceArray5D<Real> w0_, u0_;
-  //   if (pmbp->phydro != nullptr) {
-  //     gamma = pmbp->phydro->peos->eos_data.gamma;
-  //     pfloor = pmbp->phydro->peos->eos_data.pfloor;
-  //     w0_ = pmbp->phydro->w0;
-  //     u0_ = pmbp->phydro->u0;
-  //   } 
-  //   else if (pmbp->pmhd != nullptr) {
-  //     gamma = pmbp->pmhd->peos->eos_data.gamma;
-  //     pfloor = pmbp->phydro->peos->eos_data.pfloor;
-  //     w0_ = pmbp->pmhd->w0;
-  //     u0_ = pmbp->pmhd->u0;
-  //   }
-  //   auto &size = pmbp->pmb->mb_size;
-  //   auto &coord = pmbp->pcoord->coord_data;
-  //   Real &spin = coord.bh_spin;
-  //   bool &is_minkowski = coord.is_minkowski;
-  //   auto &indcs = pm->mb_indcs;
-  //   int is = indcs.is, js = indcs.js, ks = indcs.ks;
-  //   int ie = indcs.ie, je = indcs.je, ke = indcs.ke;
-  //   int nmb = pmbp->nmb_thispack;
-  //   par_for("User_Source_Cooling", DevExeSpace(), 0,nmb-1,ks,ke+1,js,je+1,is,ie+1,
-  //   KOKKOS_LAMBDA(int m, int k, int j, int i) {
+  if (pmbp->prad == nullptr){
+    Real gamma, pfloor;
+    DvceArray5D<Real> w0_, u0_;
+    if (pmbp->phydro != nullptr) {
+      gamma = pmbp->phydro->peos->eos_data.gamma;
+      pfloor = pmbp->phydro->peos->eos_data.pfloor;
+      w0_ = pmbp->phydro->w0;
+      u0_ = pmbp->phydro->u0;
+    } 
+    else if (pmbp->pmhd != nullptr) {
+      gamma = pmbp->pmhd->peos->eos_data.gamma;
+      pfloor = pmbp->phydro->peos->eos_data.pfloor;
+      w0_ = pmbp->pmhd->w0;
+      u0_ = pmbp->pmhd->u0;
+    }
+    auto &size = pmbp->pmb->mb_size;
+    auto &coord = pmbp->pcoord->coord_data;
+    Real &spin = coord.bh_spin;
+    bool &is_minkowski = coord.is_minkowski;
+    auto &indcs = pm->mb_indcs;
+    int is = indcs.is, js = indcs.js, ks = indcs.ks;
+    int ie = indcs.ie, je = indcs.je, ke = indcs.ke;
+    int nmb = pmbp->nmb_thispack;
+    par_for("User_Source_Cooling", DevExeSpace(), 0,nmb-1,ks,ke+1,js,je+1,is,ie+1,
+    KOKKOS_LAMBDA(int m, int k, int j, int i) {
       
-  //     int km1 = (k-1 < ks) ? ks : k-1;
-  //     int kp1 = (k+1 > ke) ? ke : k+1;
-  //     int jm1 = (j-1 < js) ? js : j-1;
-  //     int jp1 = (j+1 > je) ? je : j+1;
-  //     int im1 = (i-1 < is) ? is : i-1;
-  //     int ip1 = (i+1 > ie) ? ie : i+1;
+      int km1 = (k-1 < ks) ? ks : k-1;
+      int kp1 = (k+1 > ke) ? ke : k+1;
+      int jm1 = (j-1 < js) ? js : j-1;
+      int jp1 = (j+1 > je) ? je : j+1;
+      int im1 = (i-1 < is) ? is : i-1;
+      int ip1 = (i+1 > ie) ? ie : i+1;
 
 
-  //     //Find cell center position
-  //     Real &x1min = size.d_view(m).x1min;
-  //     Real &x1max = size.d_view(m).x1max;
-  //     Real x1 = CellCenterX(i-is, indcs.nx1, x1min, x1max);
+      //Find cell center position
+      Real &x1min = size.d_view(m).x1min;
+      Real &x1max = size.d_view(m).x1max;
+      Real x1 = CellCenterX(i-is, indcs.nx1, x1min, x1max);
 
-  //     Real &x2min = size.d_view(m).x2min;
-  //     Real &x2max = size.d_view(m).x2max;
-  //     Real x2 = CellCenterX(j-js, indcs.nx2, x2min, x2max);
+      Real &x2min = size.d_view(m).x2min;
+      Real &x2max = size.d_view(m).x2max;
+      Real x2 = CellCenterX(j-js, indcs.nx2, x2min, x2max);
 
-  //     Real &x3min = size.d_view(m).x3min;
-  //     Real &x3max = size.d_view(m).x3max;
-  //     Real x3 = CellCenterX(k-ks, indcs.nx3, x3min, x3max);
+      Real &x3min = size.d_view(m).x3min;
+      Real &x3max = size.d_view(m).x3max;
+      Real x3 = CellCenterX(k-ks, indcs.nx3, x3min, x3max);
 
-  //     //Find Boyer-Lindquist radius,theta
-  //     Real rad = sqrt(SQR(x1) + SQR(x2) + SQR(x3));
-  //     Real r = fmax((sqrt( SQR(rad) - SQR(spin) + sqrt(SQR(SQR(rad)-SQR(spin))
-  //                     + 4.0*SQR(spin)*SQR(x3)) ) / sqrt(2.0)), 1.0);
-  //     Real theta = (fabs(x3/r) < 1.0) ? acos(x3/r) : acos(copysign(1.0, x3));
+      //Find Boyer-Lindquist radius,theta
+      Real rad = sqrt(SQR(x1) + SQR(x2) + SQR(x3));
+      Real r = fmax((sqrt( SQR(rad) - SQR(spin) + sqrt(SQR(SQR(rad)-SQR(spin))
+                      + 4.0*SQR(spin)*SQR(x3)) ) / sqrt(2.0)), 1.0);
+      Real theta = (fabs(x3/r) < 1.0) ? acos(x3/r) : acos(copysign(1.0, x3));
 
-  //     Real R = r*sin(theta);
+      Real R = r*sin(theta);
 
-  //     Real gm1 = gamma - 1.0;
+      Real gm1 = gamma - 1.0;
 
-  //     Real r_hor = 1.0 + sqrt(1.0 - SQR(spin));
+      Real r_hor = 1.0 + sqrt(1.0 - SQR(spin));
 
-  //     //Get Metric
-  //     Real glower[4][4], gupper[4][4];
-  //     ComputeMetricAndInverse(x1, x2, x3, is_minkowski, spin,
-  //                             glower, gupper);
+      //Get Metric
+      Real glower[4][4], gupper[4][4];
+      ComputeMetricAndInverse(x1, x2, x3, is_minkowski, spin,
+                              glower, gupper);
 
-  //     //Find Covariant Fluid 4 Velocity
-  //     Real alpha = pow(-gupper[0][0],-0.5);
-  //     // Real beta1 = -gupper[0][1]/gupper[0][0];
-  //     // Real beta2 = -gupper[0][2]/gupper[0][0];
-  //     // Real beta3 = -gupper[0][3]/gupper[0][0];
+      //Find Covariant Fluid 4 Velocity
+      Real alpha = pow(-gupper[0][0],-0.5);
+      // Real beta1 = -gupper[0][1]/gupper[0][0];
+      // Real beta2 = -gupper[0][2]/gupper[0][0];
+      // Real beta3 = -gupper[0][3]/gupper[0][0];
 
-  //     Real vsq = glower[1][1]*SQR(w0_(m,IVX,k,j,i))+glower[2][2]*SQR(w0_(m,IVY,k,j,i))
-  //     +glower[3][3]*SQR(w0_(m,IVZ,k,j,i))+2.0*glower[1][2]*w0_(m,IVX,k,j,i)*w0_(m,IVY,k,j,i)
-  //     +2.0*glower[1][3]*w0_(m,IVX,k,j,i)*w0_(m,IVZ,k,j,i)+2.0*glower[2][3]*w0_(m,IVY,k,j,i)*w0_(m,IVZ,k,j,i);
+      Real vsq = glower[1][1]*SQR(w0_(m,IVX,k,j,i))+glower[2][2]*SQR(w0_(m,IVY,k,j,i))
+      +glower[3][3]*SQR(w0_(m,IVZ,k,j,i))+2.0*glower[1][2]*w0_(m,IVX,k,j,i)*w0_(m,IVY,k,j,i)
+      +2.0*glower[1][3]*w0_(m,IVX,k,j,i)*w0_(m,IVZ,k,j,i)+2.0*glower[2][3]*w0_(m,IVY,k,j,i)*w0_(m,IVZ,k,j,i);
 
-  //     Real u0 = sqrt(1+vsq)/alpha;
-  //     // Real u1 = w0_(m,IVX,k,j,i) - beta1*u0;
-  //     // Real u2 = w0_(m,IVY,k,j,i) - beta2*u0;
-  //     // Real u3 = w0_(m,IVZ,k,j,i) - beta3*u0;
+      Real u0 = sqrt(1+vsq)/alpha;
+      // Real u1 = w0_(m,IVX,k,j,i) - beta1*u0;
+      // Real u2 = w0_(m,IVY,k,j,i) - beta2*u0;
+      // Real u3 = w0_(m,IVZ,k,j,i) - beta3*u0;
       
-  //     // Real u_0 = u0*glower[0][0]+u1*glower[0][1]+u2*glower[0][2]+u3*glower[0][3];
-  //     // Real u_1 = u0*glower[1][0]+u1*glower[1][1]+u2*glower[1][2]+u3*glower[1][3];
-  //     // Real u_2 = u0*glower[2][0]+u1*glower[2][1]+u2*glower[2][2]+u3*glower[2][3];
-  //     // Real u_3 = u0*glower[3][0]+u1*glower[3][1]+u2*glower[3][2]+u3*glower[3][3];
+      // Real u_0 = u0*glower[0][0]+u1*glower[0][1]+u2*glower[0][2]+u3*glower[0][3];
+      // Real u_1 = u0*glower[1][0]+u1*glower[1][1]+u2*glower[1][2]+u3*glower[1][3];
+      // Real u_2 = u0*glower[2][0]+u1*glower[2][1]+u2*glower[2][2]+u3*glower[2][3];
+      // Real u_3 = u0*glower[3][0]+u1*glower[3][1]+u2*glower[3][2]+u3*glower[3][3];
 
-  //     //Find Cooling Timescale
-  //     Real Cooling_Timescale = 2.0*M_PI*(spin+pow(R,1.5));
+      //Find Cooling Timescale
+      Real Cooling_Timescale = 2.0*M_PI*(spin+pow(R,1.5));
 
-  //     //Find entropy constant
-  //     //Real s = (w0_(m,IEN,k,j,i)*gm1)/pow(w0_(m,IDN,k,j,i),gamma);
+      //Find entropy constant
+      //Real s = (w0_(m,IEN,k,j,i)*gm1)/pow(w0_(m,IDN,k,j,i),gamma);
 
-  //     int directions[7][3] = {
-  //       {i, j, k},
-  //       {im1, j, k},
-  //       {ip1, j, k},
-  //       {i, jm1, k},
-  //       {i, jp1, k},
-  //       {i, j, km1},
-  //       {i, j, kp1}
-  //     };
+      int directions[7][3] = {
+        {i, j, k},
+        {im1, j, k},
+        {ip1, j, k},
+        {i, jm1, k},
+        {i, jp1, k},
+        {i, j, km1},
+        {i, j, kp1}
+      };
 
-  //     int ii, jj, kk;
-  //     Real CoolingRate = 0;
+      int ii, jj, kk;
+      Real CoolingRate = 0;
 
-  //     for (int idx=0; idx<7; ++idx) {
-  //       ii = directions[idx][0];
-  //       jj = directions[idx][1];
-  //       kk = directions[idx][2];
-  //       Real entr = (w0_(m,IEN,kk,jj,ii)*gm1)/pow(w0_(m,IDN,kk,jj,ii),gamma);
-  //       CoolingRate += log(entr/s_targ);
-  //     }
+      for (int idx=0; idx<7; ++idx) {
+        ii = directions[idx][0];
+        jj = directions[idx][1];
+        kk = directions[idx][2];
+        Real entr = (w0_(m,IEN,kk,jj,ii)*gm1)/pow(w0_(m,IDN,kk,jj,ii),gamma);
+        CoolingRate += log(entr/s_targ);
+      }
 
-  //     CoolingRate *= 1.0/7.0;
-  //     CoolingRate *= w0_(m,IEN,k,j,i)/(u0*Cooling_Timescale);
+      CoolingRate *= 1.0/7.0;
+      CoolingRate *= w0_(m,IEN,k,j,i)/(u0*Cooling_Timescale);
 
-  //     Real Cooled_Energy = w0_(m,IEN,k,j,i) - CoolingRate*dt;
+      Real Cooled_Energy = w0_(m,IEN,k,j,i) - CoolingRate*dt;
 
-  //     //Find Comoving Cooling Rate
-  //     //Real CoolingRate = (w0_(m,IEN,k,j,i)*log(s/s_targ))/Cooling_Timescale;
-  //     if((CoolingRate>0)&&(Cooling_Timescale>dt)&&(r>r_hor)&&((gamma-1)*Cooled_Energy>pfloor)){
-  //       //Update conserved energy density and momenta
-  //       // u0_(m,IEN,k,j,i) -= CoolingRate*dt*u_0;
-  //       // u0_(m,IM1,k,j,i) -= CoolingRate*dt*u_1;
-  //       // u0_(m,IM2,k,j,i) -= CoolingRate*dt*u_2;
-  //       // u0_(m,IM3,k,j,i) -= CoolingRate*dt*u_3;
+      //Find Comoving Cooling Rate
+      //Real CoolingRate = (w0_(m,IEN,k,j,i)*log(s/s_targ))/Cooling_Timescale;
+      if((CoolingRate>0)&&(Cooling_Timescale>dt)&&(r>r_hor)&&((gamma-1)*Cooled_Energy>pfloor)){
+        //Update conserved energy density and momenta
+        // u0_(m,IEN,k,j,i) -= CoolingRate*dt*u_0;
+        // u0_(m,IM1,k,j,i) -= CoolingRate*dt*u_1;
+        // u0_(m,IM2,k,j,i) -= CoolingRate*dt*u_2;
+        // u0_(m,IM3,k,j,i) -= CoolingRate*dt*u_3;
 
-  //       //Update internal energy
-  //       w0_(m,IEN,k,j,i) = Cooled_Energy;
-  //     };
-  //   });
-  //   //Update Conserved Variables
-  //   if (pmbp->phydro != nullptr) {
-  //     pmbp->phydro->peos->PrimToCons(w0_, u0_, is, ie, js, je, ks, ke);
-  //   } 
-  //   else if (pmbp->pmhd != nullptr) {
-  //     auto &bcc0_ = pmbp->pmhd->bcc0;
-  //     pmbp->pmhd->peos->PrimToCons(w0_, bcc0_, u0_, is, ie, js, je, ks, ke);
-  //   }
-  // };
+        //Update internal energy
+        w0_(m,IEN,k,j,i) = Cooled_Energy;
+      };
+    });
+    //Update Conserved Variables
+    if (pmbp->phydro != nullptr) {
+      pmbp->phydro->peos->PrimToCons(w0_, u0_, is, ie, js, je, ks, ke);
+    } 
+    else if (pmbp->pmhd != nullptr) {
+      auto &bcc0_ = pmbp->pmhd->bcc0;
+      pmbp->pmhd->peos->PrimToCons(w0_, bcc0_, u0_, is, ie, js, je, ks, ke);
+    }
+  };
   return;
 }
