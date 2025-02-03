@@ -1965,7 +1965,7 @@ void Cooling(Mesh *pm, const Real dt) {
         {i, jp1, k},
         {i, j, km1},
         {i, j, kp1}
-        };
+      };
 
       int ii, jj, kk;
       Real CoolingRate = 0;
@@ -1981,7 +1981,7 @@ void Cooling(Mesh *pm, const Real dt) {
       CoolingRate *= 1.0/7.0;
       CoolingRate *= w0_(m,IEN,k,j,i)/(u0*Cooling_Timescale);
 
-      Real Cooled_Energy = w0_(m,IEN,k,j,i) - CoolingRate*dt ;
+      Real Cooled_Energy = w0_(m,IEN,k,j,i) - CoolingRate*dt;
 
       //Find Comoving Cooling Rate
       //Real CoolingRate = (w0_(m,IEN,k,j,i)*log(s/s_targ))/Cooling_Timescale;
@@ -1996,14 +1996,14 @@ void Cooling(Mesh *pm, const Real dt) {
         w0_(m,IEN,k,j,i) = Cooled_Energy;
       };
     });
-    //Update Conserved Variables
-    if (pmbp->phydro != nullptr) {
-      pmbp->phydro->peos->PrimToCons(w0_, u0_, is, ie, js, je, ks, ke);
-    } 
-    else if (pmbp->pmhd != nullptr) {
-      auto &bcc0_ = pmbp->pmhd->bcc0;
-      pmbp->pmhd->peos->PrimToCons(w0_, bcc0_, u0_, is, ie, js, je, ks, ke);
-    }
+    // //Update Conserved Variables
+    // if (pmbp->phydro != nullptr) {
+    //   pmbp->phydro->peos->PrimToCons(w0_, u0_, is, ie, js, je, ks, ke);
+    // } 
+    // else if (pmbp->pmhd != nullptr) {
+    //   auto &bcc0_ = pmbp->pmhd->bcc0;
+    //   pmbp->pmhd->peos->PrimToCons(w0_, bcc0_, u0_, is, ie, js, je, ks, ke);
+    // }
   };
   return;
 }
