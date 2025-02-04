@@ -1997,7 +1997,7 @@ void Cooling(Mesh *pm, const Real dt) {
         w0_(m,IEN,k,j,i) = Cooled_Energy;
       };
     });
-    Update Conserved Variables
+    //Update Conserved Variables
     if (pmbp->phydro != nullptr) {
       pmbp->phydro->peos->PrimToCons(w0_, u0_, is, ie, js, je, ks, ke);
     } 
