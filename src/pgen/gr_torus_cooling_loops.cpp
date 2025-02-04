@@ -1997,13 +1997,13 @@ void Cooling(Mesh *pm, const Real dt) {
     //   };
     // });
     //Update Conserved Variables
-    if (pmbp->phydro != nullptr) {
-      pmbp->phydro->peos->PrimToCons(w0_, u0_, is, ie, js, je, ks, ke);
-    } 
-    else if (pmbp->pmhd != nullptr) {
-      auto &bcc0_ = pmbp->pmhd->bcc0;
-      pmbp->pmhd->peos->PrimToCons(w0_, bcc0_, u0_, is, ie, js, je, ks, ke);
-    }
+    // if (pmbp->phydro != nullptr) {
+    //   pmbp->phydro->peos->PrimToCons(w0_, u0_, is, ie, js, je, ks, ke);
+    // } 
+    // else if (pmbp->pmhd != nullptr) {
+    //   auto &bcc0_ = pmbp->pmhd->bcc0;
+    //   pmbp->pmhd->peos->PrimToCons(w0_, bcc0_, u0_, is, ie, js, je, ks, ke);
+    // }
   };
   return;
 }
