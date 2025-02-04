@@ -1882,14 +1882,14 @@ void Cooling(Mesh *pm, const Real dt) {
       w0_ = pmbp->pmhd->w0;
       u0_ = pmbp->pmhd->u0;
     }
-    auto &size = pmbp->pmb->mb_size;
-    auto &coord = pmbp->pcoord->coord_data;
-    Real &spin = coord.bh_spin;
-    bool &is_minkowski = coord.is_minkowski;
-    auto &indcs = pm->mb_indcs;
-    int is = indcs.is, js = indcs.js, ks = indcs.ks;
-    int ie = indcs.ie, je = indcs.je, ke = indcs.ke;
-    int nmb = pmbp->nmb_thispack;
+    // auto &size = pmbp->pmb->mb_size;
+    // auto &coord = pmbp->pcoord->coord_data;
+    // Real &spin = coord.bh_spin;
+    // bool &is_minkowski = coord.is_minkowski;
+    // auto &indcs = pm->mb_indcs;
+    // int is = indcs.is, js = indcs.js, ks = indcs.ks;
+    // int ie = indcs.ie, je = indcs.je, ke = indcs.ke;
+    // int nmb = pmbp->nmb_thispack;
     // par_for("User_Source_Cooling", DevExeSpace(), 0,nmb-1,ks,ke+1,js,je+1,is,ie+1,
     // KOKKOS_LAMBDA(int m, int k, int j, int i) {
       
