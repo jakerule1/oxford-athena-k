@@ -1865,7 +1865,8 @@ void Cooling(Mesh *pm, const Real dt) {
   //ParameterInput param_in;
   //ParameterInput *pin = new ParameterInput();
   //delete pin;
-  MeshBlockPack *pmbp = pm->pmb_pack;
+  
+  //MeshBlockPack *pmbp = pm->pmb_pack;
   
   // if (pmbp->prad == nullptr){
   //   Real gamma, pfloor;
