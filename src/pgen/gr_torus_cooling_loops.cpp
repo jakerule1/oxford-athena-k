@@ -1867,7 +1867,7 @@ void Cooling(Mesh *pm, const Real dt) {
   //delete pin;
 
   MeshBlockPack *pmbp = pm->pmb_pack;
-  
+  printf("CoolingFuncCalled Starg=%f \n",s_targ);
   if (pmbp->prad == nullptr){
     Real gamma, pfloor;
     DvceArray5D<Real> w0_, u0_;
@@ -1893,9 +1893,6 @@ void Cooling(Mesh *pm, const Real dt) {
     int nmb = pmbp->nmb_thispack;
     par_for("User_Source_Cooling", DevExeSpace(), 0,nmb-1,ks,ke+1,js,je+1,is,ie+1,
     KOKKOS_LAMBDA(int m, int k, int j, int i) {
-      if ((k==0)&&(j==0)&&(i==0)){
-        printf("CoolingFuncCalled Starg=%f \n",s_targ);
-      }
       int km1 = (k-1 < ks) ? ks : k-1;
       int kp1 = (k+1 > ke) ? ke : k+1;
       int jm1 = (j-1 < js) ? js : j-1;
