@@ -1869,7 +1869,6 @@ void Cooling(Mesh *pm, const Real dt) {
   //delete pin;
 
   MeshBlockPack *pmbp = pm->pmb_pack;
-  printf("CoolingFuncCalled Starg=%f \n",s_targ);
   if (pmbp->prad == nullptr){
     Real gamma, pfloor;
     DvceArray5D<Real> w0_, u0_;
@@ -1994,9 +1993,6 @@ void Cooling(Mesh *pm, const Real dt) {
         // u0_(m,IM2,k,j,i) -= CoolingRate*dt*u_2;
         // u0_(m,IM3,k,j,i) -= CoolingRate*dt*u_3;
         //Update internal energy
-        if((r<10.1)&&(r>9.9)){
-          printf("Cooling On, Rate = %.2e \n",CoolingRate);
-        }
         w0_(m,IEN,k,j,i) = Cooled_Energy;
       };
     });
