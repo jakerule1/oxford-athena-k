@@ -1992,8 +1992,8 @@ void Cooling(Mesh *pm, const Real dt) {
         // u0_(m,IM1,k,j,i) -= CoolingRate*dt*u_1;
         // u0_(m,IM2,k,j,i) -= CoolingRate*dt*u_2;
         // u0_(m,IM3,k,j,i) -= CoolingRate*dt*u_3;
-
         //Update internal energy
+        printf("Cooling On, Rate = %f \n",CoolingRate)
         w0_(m,IEN,k,j,i) = Cooled_Energy;
       };
     });
