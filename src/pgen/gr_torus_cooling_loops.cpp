@@ -181,7 +181,9 @@ void ProblemGenerator::UserProblem(ParameterInput *pin, const bool restart) {
   user_hist_func = TorusFluxes;
 
   // return if restart
-  if (restart) return;
+  if (restart){
+    s_targ = pin->GetReal("problem", "s_targ");
+  } return;
 
   // Select either Hydro or MHD
   DvceArray5D<Real> u0_, w0_;
