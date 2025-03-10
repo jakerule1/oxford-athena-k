@@ -265,9 +265,6 @@ Driver::Driver(ParameterInput *pin, Mesh *pmesh, Real wtlim, Kokkos::Timer* ptim
   }
 }
 
-std::shared_ptr<ParameterInput> Driver::GetPin(){
-  return pin_copy.lock();
-}
 
 //----------------------------------------------------------------------------------------
 //! \fn Driver::ExecuteTaskList()

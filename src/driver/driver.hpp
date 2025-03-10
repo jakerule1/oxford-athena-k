@@ -46,7 +46,7 @@ class Driver {
   Real cfl_limit;                  // maximum CFL number for integrator
   Kokkos::Timer* pwall_clock_;     // timer for tracking the wall clock
   Real wall_time;
-  ParameterInput* pin_copy; // local of the parameter input pointer
+  ParameterInput* pin_copy; // local copy of the parameter input pointer
   // functions
   void ExecuteTaskList(Mesh *pm, std::string tl, int stage);
   void Initialize(Mesh *pmesh, ParameterInput *pin, Outputs *pout, bool rflag);
