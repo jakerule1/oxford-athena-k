@@ -1857,15 +1857,11 @@ void TorusFluxes(HistoryData *pdata, Mesh *pm) {
   return;
 }
 void Cooling(Mesh *pm, const Real dt, ParameterInput *pin) {
-  if (pin != nullptr){
-    Real s_targ = pin->GetOrAddReal("problem", "s_targ", 0.001);
-    Real Cooling_Time_Factor = pin->GetOrAddReal("problem","cooling_time_facor",1);
-    printf("s_targ is: %f \n",s_targ);
-    printf("CoolingTimeFactor is: %f \n",Cooling_Time_Factor);
-  }
-  else{
-    return;
-  }
+  Real s_targ = pin->GetOrAddReal("problem", "s_targ", 0.001);
+  Real Cooling_Time_Factor = pin->GetOrAddReal("problem","cooling_time_facor",1);
+  printf("s_targ is: %f \n",s_targ);
+  printf("CoolingTimeFactor is: %f \n",Cooling_Time_Factor);
+
   MeshBlockPack *pmbp = pm->pmb_pack;
   if (pmbp->prad == nullptr){
     Real gamma, pfloor;

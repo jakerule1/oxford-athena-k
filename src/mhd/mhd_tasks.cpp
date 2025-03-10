@@ -285,7 +285,7 @@ TaskStatus MHD::OperatorSplitSrcTerms(Driver *pdrive, int stage) {
   Real dt = (pmy_pack->pmesh->dt);
   //Add user source terms
   if (pmy_pack->pmesh->pgen->user_srcs) {
-    (pmy_pack->pmesh->pgen->user_srcs_func)(pmy_pack->pmesh, dt, pdrive->GetPin());
+    (pmy_pack->pmesh->pgen->user_srcs_func)(pmy_pack->pmesh, dt, pdrive->pin_copy);
   }
 
   return TaskStatus::complete;
