@@ -131,10 +131,6 @@ struct torus_pgen {
 void NoInflowTorus(Mesh *pm);
 void TorusFluxes(HistoryData *pdata, Mesh *pm);
 void Cooling(Mesh *pm, const Real dt);
-//set s_targ global
-
-__managed__ Real s_targ;
-//Real s_targ;
 
 //----------------------------------------------------------------------------------------
 //! \fn void ProblemGenerator::UserProblem()
@@ -181,9 +177,7 @@ void ProblemGenerator::UserProblem(ParameterInput *pin, const bool restart) {
   user_hist_func = TorusFluxes;
 
   // return if restart
-  if (restart){
-    s_targ = pin->GetReal("problem", "s_targ");
-  } return;
+  if (restart) return;
 
   // Select either Hydro or MHD
   DvceArray5D<Real> u0_, w0_;
@@ -241,8 +235,7 @@ void ProblemGenerator::UserProblem(ParameterInput *pin, const bool restart) {
   // local parameters
   Real pert_amp = pin->GetOrAddReal("problem", "pert_amp", 0.0);
 
-  //set s_targ
-  s_targ = pin->GetReal("problem", "s_targ");
+  
 
   // excision parameters
   torus.dexcise = coord.dexcise;
@@ -1863,11 +1856,16 @@ void TorusFluxes(HistoryData *pdata, Mesh *pm) {
 
   return;
 }
-void Cooling(Mesh *pm, const Real dt) {
-  //ParameterInput param_in;
-  //ParameterInput *pin = new ParameterInput();
-  //delete pin;
-
+void Cooling(Mesh *pm, const Real dt, ParameterInput *pin) {
+  if (pin != nullptr){
+    Real s_targ = pin->GetOrAddReal("problem", "s_targ", 0.001);
+    Real Cooling_Time_Factor = pin->GetOrAddReal("problem","cooling_time_facor",1);
+    printf("s_targ is: %f \n",s_targ);
+    printf("CoolingTimeFactor is: %f \n",Cooling_Time_Factor);
+  }
+  else{
+    return;
+  }
   MeshBlockPack *pmbp = pm->pmb_pack;
   if (pmbp->prad == nullptr){
     Real gamma, pfloor;

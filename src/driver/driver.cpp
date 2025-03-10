@@ -64,6 +64,7 @@ Driver::Driver(ParameterInput *pin, Mesh *pmesh, Real wtlim, Kokkos::Timer* ptim
   lb_efficiency_(0),
   pwall_clock_(ptimer),
   wall_time(wtlim),
+  pin_copy(pin),
   impl_src("ru",1,1,1,1,1,1) {
   // set time-evolution option (no default)
   {
@@ -262,6 +263,10 @@ Driver::Driver(ParameterInput *pin, Mesh *pmesh, Real wtlim, Kokkos::Timer* ptim
       exit(EXIT_FAILURE);
     }
   }
+}
+
+std::shared_ptr<ParameterInput> Driver::GetPin(){
+  return pin_copy.lock();
 }
 
 //----------------------------------------------------------------------------------------
