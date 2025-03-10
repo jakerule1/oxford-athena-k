@@ -130,7 +130,7 @@ struct torus_pgen {
 // Prototypes for user-defined BCs, history and source functions 
 void NoInflowTorus(Mesh *pm);
 void TorusFluxes(HistoryData *pdata, Mesh *pm);
-void Cooling(Mesh *pm, const Real dt);
+void Cooling(Mesh *pm, const Real dt, ParameterInput *pin);
 
 //----------------------------------------------------------------------------------------
 //! \fn void ProblemGenerator::UserProblem()
