@@ -1859,9 +1859,6 @@ void TorusFluxes(HistoryData *pdata, Mesh *pm) {
 void Cooling(Mesh *pm, const Real dt, ParameterInput *pin) {
   Real s_targ = pin->GetOrAddReal("problem", "s_targ", 0.001);
   Real Cooling_Time_Factor = pin->GetOrAddReal("problem","cooling_time_factor",1);
-  printf("s_targ is: %f \n",s_targ);
-  printf("CoolingTimeFactor is: %f \n",Cooling_Time_Factor);
-
   MeshBlockPack *pmbp = pm->pmb_pack;
   if (pmbp->prad == nullptr){
     Real gamma, pfloor;
@@ -1947,8 +1944,7 @@ void Cooling(Mesh *pm, const Real dt, ParameterInput *pin) {
       // Real u_3 = u0*glower[3][0]+u1*glower[3][1]+u2*glower[3][2]+u3*glower[3][3];
 
       //Find Cooling Timescale
-      Real Cooling_Timescale = 2.0*M_PI*(spin+pow(R,1.5));
-
+      Real Cooling_Timescale = Cooling_Time_Factor*2.0*M_PI*(spin+pow(R,1.5));
       //Find entropy constant
       //Real s = (w0_(m,IEN,k,j,i)*gm1)/pow(w0_(m,IDN,k,j,i),gamma);
 
@@ -1977,10 +1973,10 @@ void Cooling(Mesh *pm, const Real dt, ParameterInput *pin) {
       CoolingRate *= w0_(m,IEN,k,j,i)/(u0*Cooling_Timescale);
 
       Real Cooled_Energy = w0_(m,IEN,k,j,i) - CoolingRate*dt;
-
+      
       //Find Comoving Cooling Rate
       //Real CoolingRate = (w0_(m,IEN,k,j,i)*log(s/s_targ))/Cooling_Timescale;
-      if((CoolingRate>0)&&(Cooling_Timescale>dt)&&(r>r_hor)&&((gamma-1)*Cooled_Energy>pfloor)){
+      if((CoolingRate>0)&&((w0_(m,IEN,k,j,i)/CoolingRate)>dt)&&(r>r_hor)&&((gamma-1)*Cooled_Energy>pfloor)){
         //Update conserved energy density and momenta
         // u0_(m,IEN,k,j,i) -= CoolingRate*dt*u_0;
         // u0_(m,IM1,k,j,i) -= CoolingRate*dt*u_1;
