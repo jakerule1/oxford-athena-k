@@ -1858,7 +1858,7 @@ void TorusFluxes(HistoryData *pdata, Mesh *pm) {
 }
 void Cooling(Mesh *pm, const Real dt, ParameterInput *pin) {
   Real s_targ = pin->GetOrAddReal("problem", "s_targ", 0.001);
-  Real Cooling_Time_Factor = pin->GetOrAddReal("problem","cooling_time_facor",1);
+  Real Cooling_Time_Factor = pin->GetOrAddReal("problem","cooling_time_factor",1);
   printf("s_targ is: %f \n",s_targ);
   printf("CoolingTimeFactor is: %f \n",Cooling_Time_Factor);
 
