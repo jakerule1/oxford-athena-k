@@ -1970,7 +1970,7 @@ void Cooling(Mesh *pm, const Real dt, ParameterInput *pin) {
       }
 
       CoolingRate *= 1.0/7.0;
-      CoolingRate *= w0_(m,IEN,k,j,i)/(u0*Cooling_Timescale);
+      CoolingRate *= w0_(m,IEN,k,j,i)/(Cooling_Timescale);
 
       Real Cooled_Energy = w0_(m,IEN,k,j,i) - CoolingRate*dt;
       
