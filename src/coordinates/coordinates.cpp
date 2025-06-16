@@ -347,14 +347,14 @@ void Coordinates::CoordSrcTerms(const DvceArray5D<Real> &prim,
 
     //Compute phi_source term and correct x and y coordinate sources to ensure the phi source is zero
     
-    Real tt_xy = tt[2][0]*glower[1][0] + tt[2][1]*glower[1][1] + tt[2][2]*glower[1][2] + tt[2][3]*glower[1][3]
+    Real tt_xy = tt[2][0]*glower[1][0] + tt[2][1]*glower[1][1] + tt[2][2]*glower[1][2] + tt[2][3]*glower[1][3];
 
-    Real tt_yx = tt[1][0]*glower[2][0] + tt[1][1]*glower[2][1] + tt[1][2]*glower[2][2] + tt[1][3]*glower[2][3]
+    Real tt_yx = tt[1][0]*glower[2][0] + tt[1][1]*glower[2][1] + tt[1][2]*glower[2][2] + tt[1][3]*glower[2][3];
 
-    Real s_phi = -x2v*s_1 + x1v*s_2 + tt_yx - tt_xy
+    Real s_phi = -x2v*s_1 + x1v*s_2 + tt_yx - tt_xy;
 
-    Real s_1_cor = s_1 + s_phi/(2*x2v)
-    Real s_2_cor = s_2 - s_phi/(2*x1v)
+    Real s_1_cor = s_1 + s_phi/(2*x2v);
+    Real s_2_cor = s_2 - s_phi/(2*x1v);
 
     // Add source terms to conserved quantities
     cons(m,IM1,k,j,i) += dt * s_1_cor;
