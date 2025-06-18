@@ -351,10 +351,14 @@ void Coordinates::CoordSrcTerms(const DvceArray5D<Real> &prim,
 
     Real tt_yx = tt[1][0]*glower[2][0] + tt[1][1]*glower[2][1] + tt[1][2]*glower[2][2] + tt[1][3]*glower[2][3];
 
-    Real s_phi = -x2v*s_1 + x1v*s_2 + tt_yx - tt_xy;
+    // Real tt_x0 = tt[0][0]*glower[1][0] + tt[0][1]*glower[1][1] + tt[0][2]*glower[1][2] + tt[0][3]*glower[1][3];
 
-    Real s_1_cor = s_1 + s_phi/(2*x2v);
-    Real s_2_cor = s_2 - s_phi/(2*x1v);
+    // Real tt_y0 = tt[0][0]*glower[2][0] + tt[0][1]*glower[2][1] + tt[0][2]*glower[2][2] + tt[0][3]*glower[2][3];
+
+    Real s_phi = -x2v*s_1 + x1v*s_2 + tt_yx - tt_xy;
+    
+    Real s_1_cor = s_1 + 0.5*s_phi/x2v;
+    Real s_2_cor = s_2 - 0.5*s_phi/x1v;
 
     // Add source terms to conserved quantities
     cons(m,IM1,k,j,i) += dt * s_1_cor;
