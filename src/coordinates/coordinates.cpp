@@ -361,7 +361,7 @@ void Coordinates::CoordSrcTerms(const DvceArray5D<Real> &prim,
     Real epsilon = 1e-1;
     Real s_1_cor, s_2_cor;
 
-    if (fabs(s_phi/tt_ph0) > 1e-18){
+    if (fabs(tt_ph0)>1e-16 && fabs(s_phi/tt_ph0) > 1e-18){
 
       if (fabs(x1v)<epsilon && fabs(x2v)>=epsilon){
       s_1_cor = s_1 + s_phi/(x2v*(x1v/epsilon+1));
