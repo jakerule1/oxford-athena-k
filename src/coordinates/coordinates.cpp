@@ -356,12 +356,13 @@ void Coordinates::CoordSrcTerms(const DvceArray5D<Real> &prim,
     Real tt_y0 = tt[0][0]*glower[2][0] + tt[0][1]*glower[2][1] + tt[0][2]*glower[2][2] + tt[0][3]*glower[2][3];
 
     Real s_phi = -x2v*s_1 + x1v*s_2 + tt_yx - tt_xy;
-    Real tt_ph0 = -x2v*tt_x0 + x1v*tt_y0
+    Real tt_ph0 = -x2v*tt_x0 + x1v*tt_y0;
 
     Real epsilon = 1e-1;
     Real s_1_cor, s_2_cor;
 
     if (fabs(s_phi/tt_ph0) > 1e-18){
+
       if (fabs(x1v)<epsilon && fabs(x2v)>=epsilon){
       s_1_cor = s_1 + s_phi/(x2v*(x1v/epsilon+1));
       s_2_cor = s_2 - s_phi/(x1v/epsilon+1);
@@ -377,11 +378,12 @@ void Coordinates::CoordSrcTerms(const DvceArray5D<Real> &prim,
       else{
         s_1_cor = s_1;
         s_2_cor = s_2;
+      }
     }
-    }
+
     else{
-        s_1_cor = s_1;
-        s_2_cor = s_2;
+      s_1_cor = s_1;
+      s_2_cor = s_2;
     }
   
     // Add source terms to conserved quantities
