@@ -347,48 +347,48 @@ void Coordinates::CoordSrcTerms(const DvceArray5D<Real> &prim,
 
     //Compute phi_source term and correct x and y coordinate sources to ensure the phi source is zero
     
-    Real tt_xy = tt[2][0]*glower[1][0] + tt[2][1]*glower[1][1] + tt[2][2]*glower[1][2] + tt[2][3]*glower[1][3];
+    // Real tt_xy = tt[2][0]*glower[1][0] + tt[2][1]*glower[1][1] + tt[2][2]*glower[1][2] + tt[2][3]*glower[1][3];
 
-    Real tt_yx = tt[1][0]*glower[2][0] + tt[1][1]*glower[2][1] + tt[1][2]*glower[2][2] + tt[1][3]*glower[2][3];
+    // Real tt_yx = tt[1][0]*glower[2][0] + tt[1][1]*glower[2][1] + tt[1][2]*glower[2][2] + tt[1][3]*glower[2][3];
 
-    Real tt_x0 = tt[0][0]*glower[1][0] + tt[0][1]*glower[1][1] + tt[0][2]*glower[1][2] + tt[0][3]*glower[1][3];
+    // Real tt_x0 = tt[0][0]*glower[1][0] + tt[0][1]*glower[1][1] + tt[0][2]*glower[1][2] + tt[0][3]*glower[1][3];
 
-    Real tt_y0 = tt[0][0]*glower[2][0] + tt[0][1]*glower[2][1] + tt[0][2]*glower[2][2] + tt[0][3]*glower[2][3];
+    // Real tt_y0 = tt[0][0]*glower[2][0] + tt[0][1]*glower[2][1] + tt[0][2]*glower[2][2] + tt[0][3]*glower[2][3];
 
-    Real s_phi = -x2v*s_1 + x1v*s_2 + tt_yx - tt_xy;
-    Real tt_ph0 = -x2v*tt_x0 + x1v*tt_y0;
+    // Real s_phi = -x2v*s_1 + x1v*s_2 + tt_yx - tt_xy;
+    // Real tt_ph0 = -x2v*tt_x0 + x1v*tt_y0;
 
-    Real epsilon = 1e-1;
-    Real s_1_cor, s_2_cor;
+    // Real epsilon = 1e-1;
+    // Real s_1_cor, s_2_cor;
 
-    if (fabs(tt_ph0)>1e-16 && fabs(s_phi/tt_ph0) > 1e-18){
+    // if (fabs(tt_ph0)>1e-16 && fabs(s_phi/tt_ph0) > 1e-18){
 
-      if (fabs(x1v)<epsilon && fabs(x2v)>=epsilon){
-      s_1_cor = s_1 + s_phi/(x2v*(x1v/epsilon+1));
-      s_2_cor = s_2 - s_phi/(x1v/epsilon+1);
-      }
-      else if (fabs(x1v)>=epsilon && fabs(x2v)<epsilon){
-        s_1_cor = s_1 + s_phi/(x2v/epsilon+1);
-        s_2_cor = s_2 - s_phi/(x1v*(x2v/epsilon+1));
-      }
-      else if (fabs(x1v)>=epsilon && fabs(x2v)>=epsilon){
-        s_1_cor = s_1 + 0.5*s_phi/x2v;
-        s_2_cor = s_2 - 0.5*s_phi/x1v;
-      }
-      else{
-        s_1_cor = s_1;
-        s_2_cor = s_2;
-      }
-    }
+    //   if (fabs(x1v)<epsilon && fabs(x2v)>=epsilon){
+    //     s_1_cor = s_1 + s_phi/(x2v*(x1v/epsilon+1.0));
+    //     s_2_cor = s_2 - s_phi/(x1v/epsilon+1.0);
+    //   }
+    //   else if (fabs(x1v)>=epsilon && fabs(x2v)<epsilon){
+    //     s_1_cor = s_1 + s_phi/(x2v/epsilon+1.0);
+    //     s_2_cor = s_2 - s_phi/(x1v*(x2v/epsilon+1.0));
+    //   }
+    //   else if (fabs(x1v)>=epsilon && fabs(x2v)>=epsilon){
+    //     s_1_cor = s_1 + 0.5*s_phi/x2v;
+    //     s_2_cor = s_2 - 0.5*s_phi/x1v;
+    //   }
+    //   else{
+    //     s_1_cor = s_1;
+    //     s_2_cor = s_2;
+    //   }
+    // }
 
-    else{
-      s_1_cor = s_1;
-      s_2_cor = s_2;
-    }
+    // else{
+    //   s_1_cor = s_1;
+    //   s_2_cor = s_2;
+    // }
   
     // Add source terms to conserved quantities
-    cons(m,IM1,k,j,i) += dt * s_1_cor;
-    cons(m,IM2,k,j,i) += dt * s_2_cor;
+    cons(m,IM1,k,j,i) += dt * s_1;
+    cons(m,IM2,k,j,i) += dt * s_2;
     cons(m,IM3,k,j,i) += dt * s_3;
   });
 
