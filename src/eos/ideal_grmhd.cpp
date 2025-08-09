@@ -160,6 +160,23 @@ void IdealGRMHD::ConsToPrim(DvceArray5D<Real> &cons, const DvceFaceFld4D<Real> &
         w.vy *= factor;
         w.vz *= factor;
       }
+
+      // check if 4-velocity is future directed (u_0 < 0)
+
+      Real alpha = sqrt(-1.0/gupper[0][0]);
+
+      Real tmp2 = glower[0][1]*w.vx+glower[0][2]*w.vy+glower[0][3]*w.vz;
+
+      Real u_0 = tmp2 - alpha*lor;
+
+      if (u_0 > 0) {
+        w.d = eos.dfloor;
+        w.e = eos.pfloor/gm1;
+        w.vx = 0.0;
+        w.vy = 0.0;
+        w.vz = 0.0;
+      }
+
     }
 
     // set FOFC flag and quit loop if this function called only to check floors
