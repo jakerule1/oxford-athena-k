@@ -175,6 +175,7 @@ void IdealGRMHD::ConsToPrim(DvceArray5D<Real> &cons, const DvceFaceFld4D<Real> &
         w.vx = 0.0;
         w.vy = 0.0;
         w.vz = 0.0;
+        c2p_failure = true;
       }
 
     }
