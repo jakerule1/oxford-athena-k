@@ -44,6 +44,9 @@
 #include "radiation/radiation.hpp"
 
 #include <Kokkos_Random.hpp>
+#include <Kokkos_Complex.hpp>
+#include <KokkosFFT.hpp>
+
 
 // prototypes for functions used internally to this pgen
 namespace {
@@ -64,6 +67,10 @@ static Real LogHAux(struct torus_pgen pgen, Real r, Real sin_theta);
 
 KOKKOS_INLINE_FUNCTION
 static Real CalculateT(struct torus_pgen pgen, Real rho, Real ptot_over_rho);
+
+KOKKOS_INLINE_FUNCTION
+
+static Real ranhash(Ullong u);
 
 KOKKOS_INLINE_FUNCTION
 static void GetBoyerLindquistCoordinates(struct torus_pgen pgen,
@@ -89,6 +96,8 @@ static void TransformVector(struct torus_pgen pgen,
                             Real a0_bl, Real a1_bl, Real a2_bl, Real a3_bl,
                             Real x1, Real x2, Real x3,
                             Real *pa0, Real *pa1, Real *pa2, Real *pa3);
+
+
 
 KOKKOS_INLINE_FUNCTION
 Real A1(struct torus_pgen pgen, Real x1, Real x2, Real x3);
@@ -121,6 +130,9 @@ struct torus_pgen {
   int potential_loops;                        // set number of loops in vector potential
   Real potential_edge;                        // set inner edge of vector potential loops
   Real potential_outer_edge;                  // set outer edge of vector potential loops
+  bool is_toroidal_field;                     // use toroidal field config
+  bool use_random_b_field;
+  Real potential_pspec_idx;
 };
 
   torus_pgen torus;
@@ -454,7 +466,9 @@ void ProblemGenerator::UserProblem(ParameterInput *pin, const bool restart) {
     torus.potential_beta_min = pin->GetOrAddReal("problem", "potential_beta_min", 100.0);
     torus.potential_cutoff   = pin->GetOrAddReal("problem", "potential_cutoff", 0.2);
 
-    torus.is_vertical_field = pin->GetOrAddBoolean("problem", "vertical_field", false);
+    torus.is_vertical_field  = pin->GetOrAddBoolean("problem", "vertical_field", false);
+    torus.is_toroidal_field  = pin->GetOrAddBoolean("problem", "toroidal_field", false);
+    torus.use_random_b_field = pin->GetOrAddBoolean("problem", "random_field", false);
 
     // for FM torus:
     // Eqns 33, 34 of arxiv/2202.11721
@@ -470,6 +484,7 @@ void ProblemGenerator::UserProblem(ParameterInput *pin, const bool restart) {
     torus.potential_loops      = pin->GetOrAddInteger("problem", "potential_loops", 0);
     torus.potential_edge       = pin->GetOrAddReal("problem", "potential_edge", torus.r_edge);
     torus.potential_outer_edge = pin->GetOrAddReal("problem", "potential_outer_edge", torus.r_outer_edge);
+    torus.potential_pspec_idx  = pin->GetOrAddReal("problem", "potential_psepc_idx", 2.0);
 
     // compute vector potential over all faces
     int ncells1 = indcs.nx1 + 2*(indcs.ng);
@@ -479,6 +494,155 @@ void ProblemGenerator::UserProblem(ParameterInput *pin, const bool restart) {
     Kokkos::realloc(a1, nmb,ncells3,ncells2,ncells1);
     Kokkos::realloc(a2, nmb,ncells3,ncells2,ncells1);
     Kokkos::realloc(a3, nmb,ncells3,ncells2,ncells1);
+
+    if (torus.use_random_b_field){
+
+      Real b_box_size = torus.r_outer_edge;
+
+      // Find maximum cell spacing within box
+      Real max_dx = std::numeric_limits<Real>::min();
+      Kokkos::parallel_reduce("max_dx", Kokkos::RangePolicy<>(DevExeSpace(), 0, nmb),
+        KOKKOS_LAMBDA(const int &idx, Real &local_max) {
+          
+          if((size.d_view(idx).x1min <= b_box_size) && (size.d_view(idx).x2min <= b_box_size) && (size.d_view(idx).x3min <= b_box_size)
+            && (size.d_view(idx).x1max >= -b_box_size) && (size.d_view(idx).x2max >= -b_box_size) && (size.d_view(idx).x3max >= -b_box_size)){
+            local_max = fmax(size.d_view(idx).dx1,local_max);
+            local_max = fmax(size.d_view(idx).dx2,local_max);
+            local_max = fmax(size.d_view(idx).dx3,local_max);
+          }
+        }, Kokkos::Min<Real>(max_dx));
+
+      #if MPI_PARALLEL_ENABLED
+        MPI_Allreduce(MPI_IN_PLACE, &max_dx, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+      #endif
+
+      const int N_field = static_cast<int>(std::floor(2.0*b_box_size/max_dx));
+
+      DvceArray3D<Kokkos::complex<double>> CplxAmp_X1, CplxAmp_X2, CplxAmp_X3;
+
+      Kokkos::realloc(CplxAmp_X1, N_field, N_field, N_field);
+      Kokkos::realloc(CplxAmp_X2, N_field, N_field, N_field);
+      Kokkos::realloc(CplxAmp_X3, N_field, N_field, N_field);
+
+      par_for("rand_b_field_complex_amps", DevExeSpace(), 0, N_field-1, 0, N_field-1, 0, N_field-1,
+      KOKKOS_LAMBDA(int k, int j, int i){
+
+        uint64_t state = static_cast<uint64_t>(i) + static_cast<uint64_t>(j) * N_field 
+        + static_cast<uint64_t>(k) * N_field * N_field;
+
+        Real phase1 = 2*M_PI*ranhash(state*3);
+        Real phase2 = 2*M_PI*ranhash(state*3+1);
+        Real phase3 = 2*M_PI*ranhash(state*3+2);
+
+        Real amplitude = pow((SQR(i)+SQR(j)+SQR(k)+1.0),(-0.5*torus.potential_psepc_idx));
+
+        CplxAmp_X1(k,j,i) = Kokkos::complex<Real>(amplitude*cos(phase1),
+                                                amplitude*sin(phase1));
+        CplxAmp_X2(k,j,i) = Kokkos::complex<Real>(amplitude*cos(phase2),
+                                                amplitude*sin(phase2));
+        CplxAmp_X3(k,j,i) = Kokkos::complex<Real>(amplitude*cos(phase3),
+                                                amplitude*sin(phase3));                                       
+      }
+      )
+
+      int ntransf = 4;
+      int maxbatchsize = 4;
+      int iflag=1;
+      double tol=1e-6;
+      int dim = 3;
+      int nmodes[3];
+      int type = 2;
+
+      nmodes[0] = N_field;
+      nmodes[1] = N_field;
+      nmodes[2] = N_field;
+
+      cufinufft_plan plan;
+
+      cufinufft_makeplan(type, dim, nmodes, iflag, ntransf, tol, maxbatchsize, &plan, NULL);
+
+      int M = (indcs.x1+1)*(indcs.x2+1)*(indcs.x3+1);
+
+      DvceArray1D<Real> norm_x1s, norm_x2s, norm_x3s;
+      DvceArray1D<Real> norm_x1fs, norm_x2fs, norm_x3fs;
+      
+      Kokkos::realloc(norm_x1s, M);
+      Kokkos::realloc(norm_x2s, M);
+      Kokkos::realloc(norm_x3s, M);
+
+      Kokkos::realloc(norm_x1fs, M);
+      Kokkos::realloc(norm_x2fs, M);
+      Kokkos::realloc(norm_x3fs, M);
+
+      DvceArray1D<Kokkos::complex<double>> a1_c, a2_c, a3_c;
+
+      Kokkos::realloc(a1_c, M);
+      Kokkos::realloc(a2_c, M);
+      Kokkos::realloc(a3_c, M);
+
+      for (int m=0; m<nmb; ++n){
+
+        if((size.d_view(m).x1min <= b_box_size) && (size.d_view(m).x2min <= b_box_size) && (size.d_view(m).x3min <= b_box_size)
+            && (size.d_view(m).x1max >= -b_box_size) && (size.d_view(m).x2max >= -b_box_size) && (size.d_view(m).x3max >= -b_box_size)){
+
+          par_for("populate_coord_arrays", DevExeSpace(), ks,ke+1,js,je+1,is,ie+1,
+            KOKKOS_LAMBDA(int k, int j, int i){
+
+              Real &x1min = size.d_view(m).x1min;
+              Real &x1max = size.d_view(m).x1max;
+              int nx1 = indcs.nx1;
+              Real x1v = CellCenterX(i-is, nx1, x1min, x1max);
+              Real x1f   = LeftEdgeX(i  -is, nx1, x1min, x1max);
+
+              Real &x2min = size.d_view(m).x2min;
+              Real &x2max = size.d_view(m).x2max;
+              int nx2 = indcs.nx2;
+              Real x2v = CellCenterX(j-js, nx2, x2min, x2max);
+              Real x2f   = LeftEdgeX(j  -js, nx2, x2min, x2max);
+
+              Real &x3min = size.d_view(m).x3min;
+              Real &x3max = size.d_view(m).x3max;
+              int nx3 = indcs.nx3;
+              Real x3v = CellCenterX(k-ks, nx3, x3min, x3max);
+              Real x3f   = LeftEdgeX(k  -ks, nx3, x3min, x3max);
+
+              int index = (i-is) + (j-js) * (indcs.nx1+1) + (k-ks) * (indcs.nx1+1) * (indcs.nx2+1);
+
+              norm_x1s(index) = M_PI*x1v/b_box_size;
+              norm_x2s(index) = M_PI*x2v/b_box_size;
+              norm_x3s(index) = M_PI*x3v/b_box_size;
+
+              norm_x1fs(index) = M_PI*x1f/b_box_size;
+              norm_x2fs(index) = M_PI*x2f/b_box_size;
+              norm_x3fs(index) = M_PI*x3f/b_box_size;
+            }
+
+          )
+          cufinufftf_setpts(M, norm_x1s.data(), norm_x2fs.data(), norm_x3fs.data(), 0, NULL, NULL, NULL, plan);
+          cufinufft_execute(plan, a1_c.data(), CplxAmp_X1.data());
+
+          cufinufftf_setpts(M, norm_x1fs.data(), norm_x2s.data(), norm_x3fs.data(), 0, NULL, NULL, NULL, plan);
+          cufinufft_execute(plan, a2_c.data(), CplxAmp_X2.data());
+
+          cufinufftf_setpts(M, norm_x1fs.data(), norm_x2fs.data(), norm_x3s.data(), 0, NULL, NULL, NULL, plan);
+          cufinufft_execute(plan, a3_c.data(), CplxAmp_X3.data());
+
+          par_for("populate_vect_pot_arrays", DevExeSpace(), ks,ke+1,js,je+1,is,ie+1,
+            KOKKOS_LAMBDA(int k, int j, int i){
+
+              int index = (i-is) + (j-js) * (indcs.nx1+1) + (k-ks) * (indcs.nx1+1) * (indcs.nx2+1);
+
+              a1(m,k,j,i) = (w0_(m,IDN,k,j,i)-torus.potential_cutoff)*a1_c(index).real();
+              a2(m,k,j,i) = (w0_(m,IDN,k,j,i)-torus.potential_cutoff)*a2_c(index).real();
+              a3(m,k,j,i) = (w0_(m,IDN,k,j,i)-torus.potential_cutoff)*a3_c(index).real();
+
+            }
+          )
+
+        }
+      }
+
+    }
 
     auto &nghbr = pmbp->pmb->nghbr;
     auto &mblev = pmbp->pmb->mb_lev;
@@ -805,6 +969,20 @@ void ProblemGenerator::UserProblem(ParameterInput *pin, const bool restart) {
 }
 
 namespace {
+
+//Implementation of ranhash from Numerical Recipes
+
+KOKKOS_INLINE_FUNCTION
+
+static Real ranhash(Ullong u) {
+
+  Ullong v=u* 3935559000370003845LL + 2691343689449507681LL;
+  v ^= v >> 21; v ^= v << 37; v ^= v >> 4;
+  v *= 4768777513237032717LL;
+  v ^= v << 20; v ^= v >> 41; v ^= v << 5;
+  return 5.42101086242752217E-20 * static_cast<Real>(v);
+
+}
 
 //----------------------------------------------------------------------------------------
 // Function for calculating angular momentum variable l in Fishbone-Moncrief torus
@@ -1273,7 +1451,77 @@ static void CalculateVectorPotentialInTiltedTorus(struct torus_pgen pgen,
       aphi = aphi_tilt;
     }
 
-  } else {
+  } 
+  else if (pgen.is_toroidal_field) {
+    if (r >= pgen.r_edge) {
+      Real rho=0.0;
+      Real gm1 = pgen.gamma_adi-1.0;
+      bool in_torus = false;
+      Real ptot_over_rho;
+      Real log_h = LogHAux(pgen, r, sin_vartheta) - pgen.log_h_edge;  // (FM 3.6)
+      if (log_h >= 0.0) {
+        in_torus = true;
+        ptot_over_rho = gm1/pgen.gamma_adi * (exp(log_h) - 1.0);
+        rho = pow(ptot_over_rho, 1.0/gm1) / pgen.rho_peak;
+      }
+      Real ath_tilt = 0.0;
+      if (in_torus){
+        
+        // Compute \int (rho - rho_cut) * det(g) * dr using trapezoidal rule
+        // Keep fixed delta_r with a maximum of 100 samples
+
+        Real torus_size = pgen.r_outer_edge - pgen.r_edge;
+
+        int sample_N = static_cast<int>(std::round(100.0*(r-pgen.r_edge)/torus_size));
+        sample_N = max(sample_N,1);
+
+        Real delta_r = (r-pgen.r_edge)/sample_N;
+
+        //Add endpoint first since rho is precomputed
+
+        Real integrand = fmax((rho/pgen.rho_max)-pgen.potential_cutoff,0.0);
+        integrand *= (SQR(r)+SQR(a*cos_theta))*sin_theta;
+
+        ath_tilt += 0.5*delta_r*integrand;
+
+        Real r_i;
+
+        // Loop from start point through the integration samples
+
+        for (int i=0; i<sample_N; ++i){
+          r_i = i*delta_r + pgen.r_edge;
+          log_h = LogHAux(pgen, r_i, sin_vartheta) - pgen.log_h_edge;  // (FM 3.6)
+          if (log_h >= 0.0) {
+            ptot_over_rho = gm1/pgen.gamma_adi * (exp(log_h) - 1.0);
+            rho = pow(ptot_over_rho, 1.0/gm1) / pgen.rho_peak;
+          }
+          else{
+            rho = 0.0;
+          }
+          integrand = fmax((rho/pgen.rho_max)-pgen.potential_cutoff,0.0);
+          integrand *= (SQR(r_i)+SQR(a*cos_theta))*sin_theta;
+
+          if (i==0){
+            ath_tilt += 0.5*delta_r*integrand;  //start point
+          }
+          else{ 
+            ath_tilt += delta_r*integrand; //interior samples
+          }
+        }
+
+        if (pgen.psi != 0.0) {
+          Real dvartheta_dtheta = (pgen.cos_psi*sin_theta-pgen.sin_psi*cos_theta*cos_phi)/sin_vartheta;
+          Real dvartheta_dphi = pgen.sin_psi*sin_theta*sin_phi/sin_vartheta;
+          atheta = dvartheta_dtheta * ath_tilt;
+          aphi = dvartheta_dphi * ath_tilt;
+        } else {
+          atheta = ath_tilt;
+          aphi = 0.0;
+        }
+      }
+    }
+  }
+  else {
     if (r >= pgen.r_edge) {
       // Determine if we are in the torus
       Real rho;
@@ -1381,6 +1629,77 @@ Real A3(struct torus_pgen pgen, Real x1, Real x2, Real x3) {
 
   return atheta*(((1.0+SQR(pgen.spin/r))*SQR(x3)-sqrt_term)*isin_term/(r*sqrt_term)) +
          aphi*(pgen.spin*x3/(r*sqrt_term));
+}
+
+//Calculates the B field components for toroidal field configuration
+
+
+// NO!!!! Work out vector potential instead.
+
+
+KOKKOS_INLINE_FUNCTION
+static void CalculateToroidalBField(struct torus_pgen pgen,
+                                                  Real x1, Real x2, Real x3,
+                                                  Real *pB1, Real *pB2, Real *pB3) {
+                                                  
+  Real r, theta, phi;
+  GetBoyerLindquistCoordinates(pgen, x1, x2, x3, &r, &theta, &phi);                                                
+
+  Real sin_theta = sin(theta);
+  Real cos_theta = cos(theta);
+  Real sin_phi = sin(phi);
+  Real cos_phi = cos(phi);
+  Real sin_vartheta;
+
+  if (pgen.psi != 0.0) {
+    Real x = sin_theta * cos_phi;
+    Real y = sin_theta * sin_phi;
+    Real z = cos_theta;
+    Real varx = pgen.cos_psi * x - pgen.sin_psi * z;
+    Real vary = y;
+    sin_vartheta = sqrt(SQR(varx) + SQR(vary));
+  } else {
+    sin_vartheta = fabs(sin(theta));
+  }
+
+  if (r >= pgen.r_edge) {
+
+    // Determine if we are in the torus
+    Real rho;
+    Real gm1 = pgen.gamma_adi-1.0;
+    bool in_torus = false;
+    Real log_h = LogHAux(pgen, r, sin_vartheta) - pgen.log_h_edge;  // (FM 3.6)
+    if (log_h >= 0.0) {
+      in_torus = true;
+      Real ptot_over_rho = gm1/pgen.gamma_adi * (exp(log_h) - 1.0);
+      rho = pow(ptot_over_rho, 1.0/gm1) / pgen.rho_peak;
+    }
+    
+    Real varBph = 0;
+
+    Real Bth = 0;
+    Real Bph = 0;
+
+    if (in_torus){
+      varBph = (rho/pgen.rho_max)-pgen.potential_cutoff;
+      varBph = fmax(Bph, 0.0);
+    }
+
+    if (pgen.psi != 0.0) {
+      Real dvarphi_dtheta = -pgen.sin_psi * sin_phi / SQR(sin_vartheta);
+      Real dvarphi_dphi = sin_theta / SQR(sin_vartheta)
+          * (pgen.cos_psi * sin_theta - pgen.sin_psi * cos_theta * cos_phi);
+      Bth = dvarphi_dtheta * varBph;
+      Bph = dvarphi_dphi * varBph;
+    } else {
+      Bth = 0.0;
+      Bph = varBph;
+    }
+
+
+
+
+  }
 }
 
 } // namespace
