@@ -497,10 +497,15 @@ void ProblemGenerator::UserProblem(ParameterInput *pin, const bool restart) {
 
     if (torus.use_random_b_field){
       
-      #ifndef KOKKOS_ENABLE_CUDA
-        std::cerr << "ERROR: Random B field configuration requires a CUDA backend \n";
-        std::exit(EXIT_FAILURE);
-      #endif
+      // #ifndef KOKKOS_ENABLE_CUDA
+      //   std::cerr << "ERROR: Random B field configuration requires a CUDA backend \n";
+      //   std::exit(EXIT_FAILURE);
+      // #endif
+
+      // #ifndef FINUFFT_USE_CUDA
+      //   std::cerr << "ERROR: Random B field configuration requires a CUDA backend \n";
+      //   std::exit(EXIT_FAILURE);
+      // #endif
 
       Real b_box_size = torus.r_outer_edge;
 

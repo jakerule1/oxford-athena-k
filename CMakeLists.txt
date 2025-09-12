@@ -34,6 +34,9 @@ endif()
 option(Athena_SINGLE_PRECISION "Compile for single precision" OFF)
 option(Athena_ENABLE_MPI "Compile with MPI parallelism enabled" OFF)
 option(Athena_ENABLE_OPENMP "Compile with OpenMP parallelism enabled" OFF)
+
+option(INCLUDE_FINUFFT "Enable building with FINUFFT support" OFF)
+
 set(PROBLEM built_in_pgens CACHE STRING "Name of problem generator function")
 
 #------ set macros exported to config.hpp ------------------------------------------------
@@ -113,8 +116,17 @@ endif()
 add_subdirectory(src)
 add_subdirectory(kokkos)
 include_directories(${Kokkos_INCLUDE_DIRS_RET})
-
 target_link_libraries(athena PUBLIC Kokkos::kokkos)
+
+if (INCLUDE_FINUFFT)
+  if (Kokkos_ENABLE_CUDA)
+    set(FINUFFT_USE_CUDA ON CACHE BOOL "Enable CUDA backend in FINUFFT")
+  endif()
+  add_subdirectory(finufft)
+  include_directories(${CMAKE_SOURCE_DIR}/finufft/include)
+  target_link_libraries(athena PUBLIC finufft)
+endif()
+
 if (ENABLE_MPI)
   target_link_libraries(athena PUBLIC MPI::MPI_CXX)
 endif()
