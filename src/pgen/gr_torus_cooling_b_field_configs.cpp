@@ -701,9 +701,9 @@ void ProblemGenerator::UserProblem(ParameterInput *pin, const bool restart) {
 
               int index = (i-is) + (j-js) * (indcs.nx1+1) + (k-ks) * (indcs.nx1+1) * (indcs.nx2+1);
 
-              a1(m,k,j,i) = std::fmax((rho_at_faces[0]-trs.potential_cutoff),0)*a1_c(index).real();
-              a2(m,k,j,i) = std::fmax((rho_at_faces[1]-trs.potential_cutoff),0)*a2_c(index).real();
-              a3(m,k,j,i) = std::fmax((rho_at_faces[2]-trs.potential_cutoff),0)*a3_c(index).real();
+              a1(m,k,j,i) = Kokkos::fmax((rho_at_faces[0]-trs.potential_cutoff),0.0)*a1_c(index).real();
+              a2(m,k,j,i) = Kokkos::fmax((rho_at_faces[1]-trs.potential_cutoff),0.0)*a2_c(index).real();
+              a3(m,k,j,i) = Kokkos::fmax((rho_at_faces[2]-trs.potential_cutoff),0.0)*a3_c(index).real();
 
             }
           );
