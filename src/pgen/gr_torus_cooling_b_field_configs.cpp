@@ -708,6 +708,14 @@ void ProblemGenerator::UserProblem(ParameterInput *pin, const bool restart) {
             }
           );
         }
+        else{
+            par_for("populate_vect_pot_arrays", DevExeSpace(), ks,ke+1,js,je+1,is,ie+1,
+              KOKKOS_LAMBDA(int k, int j, int i){
+              a1(m,k,j,i) = 0.0;
+              a2(m,k,j,i) = 0.0;
+              a3(m,k,j,i) = 0.0;
+            });
+        }
       }
 
     }
