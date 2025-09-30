@@ -545,13 +545,19 @@ void ProblemGenerator::UserProblem(ParameterInput *pin, const bool restart) {
         Real phase2 = 2*M_PI*ranhash(state*3+1);
         Real phase3 = 2*M_PI*ranhash(state*3+2);
 
-        Real amplitude = pow((SQR(i)+SQR(j)+SQR(k)+1.0),(-0.5*trs.potential_pspec_idx));
+        //Shift integer indices to actual frequencies
 
-        CplxAmp_X1(k,j,i) = Kokkos::complex<double>(amplitude*cos(phase1),
+        int ii = i - N_field/2;
+        int jj = j - N_field/2;
+        int kk = k - N_field/2;
+
+        Real amplitude = pow((SQR(ii)+SQR(jj)+SQR(kk)+1.0),(-0.5*trs.potential_pspec_idx));
+
+        CplxAmp_X1(i,j,k) = Kokkos::complex<double>(amplitude*cos(phase1),
                                                 amplitude*sin(phase1));
-        CplxAmp_X2(k,j,i) = Kokkos::complex<double>(amplitude*cos(phase2),
+        CplxAmp_X2(i,j,k) = Kokkos::complex<double>(amplitude*cos(phase2),
                                                 amplitude*sin(phase2));
-        CplxAmp_X3(k,j,i) = Kokkos::complex<double>(amplitude*cos(phase3),
+        CplxAmp_X3(i,j,k) = Kokkos::complex<double>(amplitude*cos(phase3),
                                                 amplitude*sin(phase3));                                       
       }
       );
@@ -569,9 +575,7 @@ void ProblemGenerator::UserProblem(ParameterInput *pin, const bool restart) {
 
       cufinufft_plan plan;
 
-      int ier = cufinufft_makeplan(type, dim, nmodes, iflag, ntransf, tol, &plan, NULL);
-
-      if (ier) { fprintf(stderr, "makeplan failed, ier=%d\n", ier); return; }
+      cufinufft_makeplan(type, dim, nmodes, iflag, ntransf, tol, &plan, NULL);
 
       int M = (indcs.nx1+1)*(indcs.nx2+1)*(indcs.nx3+1);
 
@@ -633,13 +637,10 @@ void ProblemGenerator::UserProblem(ParameterInput *pin, const bool restart) {
           Kokkos::fence();
           static_assert(sizeof(Kokkos::complex<double>)   == sizeof(cuDoubleComplex), "size mismatch");
           static_assert(alignof(Kokkos::complex<double>)  == alignof(cuDoubleComplex), "alignment mismatch");
-          ier = cufinufft_setpts(plan, M, norm_x1s.data(), norm_x2fs.data(), norm_x3fs.data(), 0, NULL, NULL, NULL);
-          if (ier) { fprintf(stderr, "setpts failed, ier=%d\n", ier); return; }
-          ier = cufinufft_execute(plan, reinterpret_cast<cuDoubleComplex*>(a1_c.data()), reinterpret_cast<cuDoubleComplex*>(CplxAmp_X1.data()));
-          if (ier) { fprintf(stderr, "execute failed, ier=%d\n", ier); return; }
+          cufinufft_setpts(plan, M, norm_x1s.data(), norm_x2fs.data(), norm_x3fs.data(), 0, NULL, NULL, NULL);
+          cufinufft_execute(plan, reinterpret_cast<cuDoubleComplex*>(a1_c.data()), reinterpret_cast<cuDoubleComplex*>(CplxAmp_X1.data()));
           cufinufft_setpts(plan, M, norm_x1fs.data(), norm_x2s.data(), norm_x3fs.data(), 0, NULL, NULL, NULL);
           cufinufft_execute(plan, reinterpret_cast<cuDoubleComplex*>(a2_c.data()), reinterpret_cast<cuDoubleComplex*>(CplxAmp_X2.data()));
-
           cufinufft_setpts(plan, M, norm_x1fs.data(), norm_x2fs.data(), norm_x3s.data(), 0, NULL, NULL, NULL);
           cufinufft_execute(plan, reinterpret_cast<cuDoubleComplex*>(a3_c.data()), reinterpret_cast<cuDoubleComplex*>(CplxAmp_X3.data()));
           Kokkos::fence();
@@ -695,10 +696,13 @@ void ProblemGenerator::UserProblem(ParameterInput *pin, const bool restart) {
 
                 Real gm1 = trs.gamma_adi - 1.0;
                 Real log_h = LogHAux(trs, r, sin_vartheta) - trs.log_h_edge;  // (FM 3.6)
-                if (log_h >= 0.0) {
-                  Real ptot_over_rho = gm1/trs.gamma_adi * (exp(log_h) - 1.0);
-                  rho_at_faces[dir] = pow(ptot_over_rho, 1.0/gm1) / trs.rho_peak;
+                if (r >= trs.r_edge){
+                  if (log_h >= 0.0) {
+                    Real ptot_over_rho = gm1/trs.gamma_adi * (exp(log_h) - 1.0);
+                    rho_at_faces[dir] = pow(ptot_over_rho, 1.0/gm1) / trs.rho_peak;
+                  }
                 }
+
 
               }
 
