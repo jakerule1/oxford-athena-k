@@ -547,16 +547,16 @@ void ProblemGenerator::UserProblem(ParameterInput *pin, const bool restart) {
 
         Real amplitude = pow((SQR(i)+SQR(j)+SQR(k)+1.0),(-0.5*torus.potential_pspec_idx));
 
-        CplxAmp_X1(k,j,i) = Kokkos::complex<Real>(amplitude*cos(phase1),
+        CplxAmp_X1(k,j,i) = Kokkos::complex<double>(amplitude*cos(phase1),
                                                 amplitude*sin(phase1));
-        CplxAmp_X2(k,j,i) = Kokkos::complex<Real>(amplitude*cos(phase2),
+        CplxAmp_X2(k,j,i) = Kokkos::complex<double>(amplitude*cos(phase2),
                                                 amplitude*sin(phase2));
-        CplxAmp_X3(k,j,i) = Kokkos::complex<Real>(amplitude*cos(phase3),
+        CplxAmp_X3(k,j,i) = Kokkos::complex<double>(amplitude*cos(phase3),
                                                 amplitude*sin(phase3));                                       
       }
       );
 
-      int ntransf = 4;
+      int ntransf = 1;
       int iflag=1;
       double tol=1e-6;
       int dim = 3;
@@ -628,14 +628,17 @@ void ProblemGenerator::UserProblem(ParameterInput *pin, const bool restart) {
             }
 
           );
-          cufinufftf_setpts(M, norm_x1s.data(), norm_x2fs.data(), norm_x3fs.data(), 0, NULL, NULL, NULL, plan);
-          cufinufft_execute(plan, a1_c.data(), CplxAmp_X1.data());
 
-          cufinufftf_setpts(M, norm_x1fs.data(), norm_x2s.data(), norm_x3fs.data(), 0, NULL, NULL, NULL, plan);
-          cufinufft_execute(plan, a2_c.data(), CplxAmp_X2.data());
+          static_assert(sizeof(Kokkos::complex<double>)   == sizeof(cuDoubleComplex), "size mismatch");
+          static_assert(alignof(Kokkos::complex<double>)  == alignof(cuDoubleComplex), "alignment mismatch");
+          cufinufft_setpts(plan, M, norm_x1s.data(), norm_x2fs.data(), norm_x3fs.data(), 0, NULL, NULL, NULL);
+          cufinufft_execute(plan, reinterpret_cast<cuDoubleComplex*>(a1_c.data()), reinterpret_cast<cuDoubleComplex*>(CplxAmp_X1.data()));
 
-          cufinufftf_setpts(M, norm_x1fs.data(), norm_x2fs.data(), norm_x3s.data(), 0, NULL, NULL, NULL, plan);
-          cufinufft_execute(plan, a3_c.data(), CplxAmp_X3.data());
+          cufinufft_setpts(plan, M, norm_x1fs.data(), norm_x2s.data(), norm_x3fs.data(), 0, NULL, NULL, NULL);
+          cufinufft_execute(plan, reinterpret_cast<cuDoubleComplex*>(a2_c.data()), reinterpret_cast<cuDoubleComplex*>(CplxAmp_X2.data()));
+
+          cufinufft_setpts(plan, M, norm_x1fs.data(), norm_x2fs.data(), norm_x3s.data(), 0, NULL, NULL, NULL);
+          cufinufft_execute(plan, reinterpret_cast<cuDoubleComplex*>(a3_c.data()), reinterpret_cast<cuDoubleComplex*>(CplxAmp_X3.data()));
 
           par_for("populate_vect_pot_arrays", DevExeSpace(), ks,ke+1,js,je+1,is,ie+1,
             KOKKOS_LAMBDA(int k, int j, int i){
@@ -664,7 +667,7 @@ void ProblemGenerator::UserProblem(ParameterInput *pin, const bool restart) {
 
               Real rho_at_faces[3];
 
-              for (dir=0; dir<3; ++dir){
+              for (int dir=0; dir<3; ++dir){
               
                 // Calculate Boyer-Lindquist coordinates of cell
                 Real r, theta, phi;
@@ -1546,7 +1549,7 @@ static void CalculateVectorPotentialInTiltedTorus(struct torus_pgen pgen,
         //Add endpoint first since rho is precomputed
 
         Real integrand = fmax((rho/pgen.rho_max)-pgen.potential_cutoff,0.0);
-        integrand *= (SQR(r)+SQR(a*cos_theta))*sin_theta;
+        integrand *= (SQR(r)+SQR(pgen.spin*cos_theta))*sin_theta;
 
         ath_tilt += 0.5*delta_r*integrand;
 
