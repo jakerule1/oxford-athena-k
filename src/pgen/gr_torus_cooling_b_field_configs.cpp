@@ -592,8 +592,8 @@ void ProblemGenerator::UserProblem(ParameterInput *pin, const bool restart) {
 
       for (int m=0; m<nmb; ++m){
 
-        if((size.d_view(m).x1min <= b_box_size) && (size.d_view(m).x2min <= b_box_size) && (size.d_view(m).x3min <= b_box_size)
-            && (size.d_view(m).x1max >= -b_box_size) && (size.d_view(m).x2max >= -b_box_size) && (size.d_view(m).x3max >= -b_box_size)){
+        if((size.h_view(m).x1min <= b_box_size) && (size.h_view(m).x2min <= b_box_size) && (size.h_view(m).x3min <= b_box_size)
+            && (size.h_view(m).x1max >= -b_box_size) && (size.h_view(m).x2max >= -b_box_size) && (size.h_view(m).x3max >= -b_box_size)){
 
           par_for("populate_coord_arrays", DevExeSpace(), ks,ke+1,js,je+1,is,ie+1,
             KOKKOS_LAMBDA(int k, int j, int i){
