@@ -569,7 +569,9 @@ void ProblemGenerator::UserProblem(ParameterInput *pin, const bool restart) {
 
       cufinufft_plan plan;
 
-      cufinufft_makeplan(type, dim, nmodes, iflag, ntransf, tol, &plan, NULL);
+      int ier = cufinufft_makeplan(type, dim, nmodes, iflag, ntransf, tol, &plan, NULL);
+
+      if (ier) { fprintf(stderr, "makeplan failed, ier=%d\n", ier); return; }
 
       int M = (indcs.nx1+1)*(indcs.nx2+1)*(indcs.nx3+1);
 
@@ -631,9 +633,10 @@ void ProblemGenerator::UserProblem(ParameterInput *pin, const bool restart) {
 
           static_assert(sizeof(Kokkos::complex<double>)   == sizeof(cuDoubleComplex), "size mismatch");
           static_assert(alignof(Kokkos::complex<double>)  == alignof(cuDoubleComplex), "alignment mismatch");
-          cufinufft_setpts(plan, M, norm_x1s.data(), norm_x2fs.data(), norm_x3fs.data(), 0, NULL, NULL, NULL);
-          cufinufft_execute(plan, reinterpret_cast<cuDoubleComplex*>(a1_c.data()), reinterpret_cast<cuDoubleComplex*>(CplxAmp_X1.data()));
-
+          ier = cufinufft_setpts(plan, M, norm_x1s.data(), norm_x2fs.data(), norm_x3fs.data(), 0, NULL, NULL, NULL);
+          if (ier) { fprintf(stderr, "setpts failed, ier=%d\n", ier); return; }
+          ier = cufinufft_execute(plan, reinterpret_cast<cuDoubleComplex*>(a1_c.data()), reinterpret_cast<cuDoubleComplex*>(CplxAmp_X1.data()));
+          if (ier) { fprintf(stderr, "execute failed, ier=%d\n", ier); return; }
           cufinufft_setpts(plan, M, norm_x1fs.data(), norm_x2s.data(), norm_x3fs.data(), 0, NULL, NULL, NULL);
           cufinufft_execute(plan, reinterpret_cast<cuDoubleComplex*>(a2_c.data()), reinterpret_cast<cuDoubleComplex*>(CplxAmp_X2.data()));
 
