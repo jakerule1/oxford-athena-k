@@ -124,7 +124,7 @@ if (INCLUDE_FINUFFT)
   endif()
   add_subdirectory(finufft)
   include_directories(${CMAKE_SOURCE_DIR}/finufft/include)
-  target_link_libraries(athena PUBLIC finufft)
+  target_link_libraries(athena PUBLIC finufft cufinufft)
 endif()
 
 if (ENABLE_MPI)
