@@ -557,11 +557,10 @@ void ProblemGenerator::UserProblem(ParameterInput *pin, const bool restart) {
       );
 
       int ntransf = 4;
-      int maxbatchsize = 4;
       int iflag=1;
       double tol=1e-6;
       int dim = 3;
-      int nmodes[3];
+      int64_t nmodes[3];
       int type = 2;
 
       nmodes[0] = N_field;
@@ -570,7 +569,7 @@ void ProblemGenerator::UserProblem(ParameterInput *pin, const bool restart) {
 
       cufinufft_plan plan;
 
-      cufinufft_makeplan(type, dim, nmodes, iflag, ntransf, tol, maxbatchsize, &plan, NULL);
+      cufinufft_makeplan(type, dim, nmodes, iflag, ntransf, tol, &plan, NULL);
 
       int M = (indcs.nx1+1)*(indcs.nx2+1)*(indcs.nx3+1);
 
