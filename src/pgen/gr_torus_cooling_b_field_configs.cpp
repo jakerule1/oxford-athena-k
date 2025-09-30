@@ -630,7 +630,7 @@ void ProblemGenerator::UserProblem(ParameterInput *pin, const bool restart) {
             }
 
           );
-
+          Kokkos::fence();
           static_assert(sizeof(Kokkos::complex<double>)   == sizeof(cuDoubleComplex), "size mismatch");
           static_assert(alignof(Kokkos::complex<double>)  == alignof(cuDoubleComplex), "alignment mismatch");
           ier = cufinufft_setpts(plan, M, norm_x1s.data(), norm_x2fs.data(), norm_x3fs.data(), 0, NULL, NULL, NULL);
@@ -642,7 +642,7 @@ void ProblemGenerator::UserProblem(ParameterInput *pin, const bool restart) {
 
           cufinufft_setpts(plan, M, norm_x1fs.data(), norm_x2fs.data(), norm_x3s.data(), 0, NULL, NULL, NULL);
           cufinufft_execute(plan, reinterpret_cast<cuDoubleComplex*>(a3_c.data()), reinterpret_cast<cuDoubleComplex*>(CplxAmp_X3.data()));
-
+          Kokkos::fence();
           par_for("populate_vect_pot_arrays", DevExeSpace(), ks,ke+1,js,je+1,is,ie+1,
             KOKKOS_LAMBDA(int k, int j, int i){
               
@@ -668,7 +668,7 @@ void ProblemGenerator::UserProblem(ParameterInput *pin, const bool restart) {
               Real x2_at_faces[3] = {x2f, x2v, x2f};
               Real x3_at_faces[3] = {x3f, x3f, x3v};
 
-              Real rho_at_faces[3];
+              Real rho_at_faces[3] = {0.0, 0.0, 0.0};
 
               for (int dir=0; dir<3; ++dir){
               
