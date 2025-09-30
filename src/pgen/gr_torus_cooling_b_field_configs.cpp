@@ -47,6 +47,7 @@
 #include <Kokkos_Complex.hpp>
 #include <cufinufft.h>
 
+typedef unsigned long long int Ullong;
 
 // prototypes for functions used internally to this pgen
 namespace {
@@ -484,7 +485,7 @@ void ProblemGenerator::UserProblem(ParameterInput *pin, const bool restart) {
     torus.potential_loops      = pin->GetOrAddInteger("problem", "potential_loops", 0);
     torus.potential_edge       = pin->GetOrAddReal("problem", "potential_edge", torus.r_edge);
     torus.potential_outer_edge = pin->GetOrAddReal("problem", "potential_outer_edge", torus.r_outer_edge);
-    torus.potential_pspec_idx  = pin->GetOrAddReal("problem", "potential_psepc_idx", 2.0);
+    torus.potential_pspec_idx  = pin->GetOrAddReal("problem", "potential_pspec_idx", 2.0);
 
     // compute vector potential over all faces
     int ncells1 = indcs.nx1 + 2*(indcs.ng);
@@ -544,7 +545,7 @@ void ProblemGenerator::UserProblem(ParameterInput *pin, const bool restart) {
         Real phase2 = 2*M_PI*ranhash(state*3+1);
         Real phase3 = 2*M_PI*ranhash(state*3+2);
 
-        Real amplitude = pow((SQR(i)+SQR(j)+SQR(k)+1.0),(-0.5*torus.potential_psepc_idx));
+        Real amplitude = pow((SQR(i)+SQR(j)+SQR(k)+1.0),(-0.5*torus.potential_pspec_idx));
 
         CplxAmp_X1(k,j,i) = Kokkos::complex<Real>(amplitude*cos(phase1),
                                                 amplitude*sin(phase1));
@@ -553,7 +554,7 @@ void ProblemGenerator::UserProblem(ParameterInput *pin, const bool restart) {
         CplxAmp_X3(k,j,i) = Kokkos::complex<Real>(amplitude*cos(phase3),
                                                 amplitude*sin(phase3));                                       
       }
-      )
+      );
 
       int ntransf = 4;
       int maxbatchsize = 4;
@@ -571,7 +572,7 @@ void ProblemGenerator::UserProblem(ParameterInput *pin, const bool restart) {
 
       cufinufft_makeplan(type, dim, nmodes, iflag, ntransf, tol, maxbatchsize, &plan, NULL);
 
-      int M = (indcs.x1+1)*(indcs.x2+1)*(indcs.x3+1);
+      int M = (indcs.nx1+1)*(indcs.nx2+1)*(indcs.nx3+1);
 
       DvceArray1D<Real> norm_x1s, norm_x2s, norm_x3s;
       DvceArray1D<Real> norm_x1fs, norm_x2fs, norm_x3fs;
@@ -590,7 +591,7 @@ void ProblemGenerator::UserProblem(ParameterInput *pin, const bool restart) {
       Kokkos::realloc(a2_c, M);
       Kokkos::realloc(a3_c, M);
 
-      for (int m=0; m<nmb; ++n){
+      for (int m=0; m<nmb; ++m){
 
         if((size.d_view(m).x1min <= b_box_size) && (size.d_view(m).x2min <= b_box_size) && (size.d_view(m).x3min <= b_box_size)
             && (size.d_view(m).x1max >= -b_box_size) && (size.d_view(m).x2max >= -b_box_size) && (size.d_view(m).x3max >= -b_box_size)){
@@ -627,7 +628,7 @@ void ProblemGenerator::UserProblem(ParameterInput *pin, const bool restart) {
               norm_x3fs(index) = M_PI*x3f/b_box_size;
             }
 
-          )
+          );
           cufinufftf_setpts(M, norm_x1s.data(), norm_x2fs.data(), norm_x3fs.data(), 0, NULL, NULL, NULL, plan);
           cufinufft_execute(plan, a1_c.data(), CplxAmp_X1.data());
 
@@ -703,7 +704,7 @@ void ProblemGenerator::UserProblem(ParameterInput *pin, const bool restart) {
               a3(m,k,j,i) = fmax((rho_at_faces[2]-torus.potential_cutoff)*a3_c(index).real(),0);
 
             }
-          )
+          );
         }
       }
 
