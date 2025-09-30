@@ -1568,7 +1568,7 @@ static void CalculateVectorPotentialInTiltedTorus(struct torus_pgen pgen,
             rho = 0.0;
           }
           integrand = fmax((rho/pgen.rho_max)-pgen.potential_cutoff,0.0);
-          integrand *= (SQR(r_i)+SQR(a*cos_theta))*sin_theta;
+          integrand *= (SQR(r_i)+SQR(pgen.spin*cos_theta))*sin_theta;
 
           if (i==0){
             ath_tilt += 0.5*delta_r*integrand;  //start point
