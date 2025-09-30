@@ -507,8 +507,8 @@ void ProblemGenerator::UserProblem(ParameterInput *pin, const bool restart) {
       //   std::cerr << "ERROR: Random B field configuration requires a CUDA backend \n";
       //   std::exit(EXIT_FAILURE);
       // #endif
-
-      Real b_box_size = torus.r_outer_edge;
+      auto trs = torus;
+      Real b_box_size = trs.r_outer_edge;
 
       // Find maximum cell spacing within box
       Real max_dx = std::numeric_limits<Real>::min();
@@ -545,7 +545,7 @@ void ProblemGenerator::UserProblem(ParameterInput *pin, const bool restart) {
         Real phase2 = 2*M_PI*ranhash(state*3+1);
         Real phase3 = 2*M_PI*ranhash(state*3+2);
 
-        Real amplitude = pow((SQR(i)+SQR(j)+SQR(k)+1.0),(-0.5*torus.potential_pspec_idx));
+        Real amplitude = pow((SQR(i)+SQR(j)+SQR(k)+1.0),(-0.5*trs.potential_pspec_idx));
 
         CplxAmp_X1(k,j,i) = Kokkos::complex<double>(amplitude*cos(phase1),
                                                 amplitude*sin(phase1));
@@ -671,7 +671,7 @@ void ProblemGenerator::UserProblem(ParameterInput *pin, const bool restart) {
               
                 // Calculate Boyer-Lindquist coordinates of cell
                 Real r, theta, phi;
-                GetBoyerLindquistCoordinates(torus, x1_at_faces[dir], x2_at_faces[dir], x3_at_faces[dir], &r, &theta, &phi);
+                GetBoyerLindquistCoordinates(trs, x1_at_faces[dir], x2_at_faces[dir], x3_at_faces[dir], &r, &theta, &phi);
                 Real sin_theta = sin(theta);
                 Real cos_theta = cos(theta);
                 Real sin_phi = sin(phi);
@@ -679,31 +679,31 @@ void ProblemGenerator::UserProblem(ParameterInput *pin, const bool restart) {
 
                 // Account for tilt
                 Real sin_vartheta;
-                if (torus.psi != 0.0) {
+                if (trs.psi != 0.0) {
                   Real x = sin_theta * cos_phi;
                   Real y = sin_theta * sin_phi;
                   Real z = cos_theta;
-                  Real varx = torus.cos_psi * x - torus.sin_psi * z;
+                  Real varx = trs.cos_psi * x - trs.sin_psi * z;
                   Real vary = y;
                   sin_vartheta = sqrt(SQR(varx) + SQR(vary));
                 } else {
                   sin_vartheta = fabs(sin_theta);
                 }
 
-                Real gm1 = torus.gamma_adi - 1.0;
-                Real log_h = LogHAux(torus, r, sin_vartheta) - torus.log_h_edge;  // (FM 3.6)
+                Real gm1 = trs.gamma_adi - 1.0;
+                Real log_h = LogHAux(trs, r, sin_vartheta) - trs.log_h_edge;  // (FM 3.6)
                 if (log_h >= 0.0) {
-                  Real ptot_over_rho = gm1/torus.gamma_adi * (exp(log_h) - 1.0);
-                  rho_at_faces[dir] = pow(ptot_over_rho, 1.0/gm1) / torus.rho_peak;
+                  Real ptot_over_rho = gm1/trs.gamma_adi * (exp(log_h) - 1.0);
+                  rho_at_faces[dir] = pow(ptot_over_rho, 1.0/gm1) / trs.rho_peak;
                 }
 
               }
 
               int index = (i-is) + (j-js) * (indcs.nx1+1) + (k-ks) * (indcs.nx1+1) * (indcs.nx2+1);
 
-              a1(m,k,j,i) = fmax((rho_at_faces[0]-torus.potential_cutoff)*a1_c(index).real(),0);
-              a2(m,k,j,i) = fmax((rho_at_faces[1]-torus.potential_cutoff)*a2_c(index).real(),0);
-              a3(m,k,j,i) = fmax((rho_at_faces[2]-torus.potential_cutoff)*a3_c(index).real(),0);
+              a1(m,k,j,i) = fmax((rho_at_faces[0]-trs.potential_cutoff)*a1_c(index).real(),0);
+              a2(m,k,j,i) = fmax((rho_at_faces[1]-trs.potential_cutoff)*a2_c(index).real(),0);
+              a3(m,k,j,i) = fmax((rho_at_faces[2]-trs.potential_cutoff)*a3_c(index).real(),0);
 
             }
           );
@@ -1706,70 +1706,70 @@ Real A3(struct torus_pgen pgen, Real x1, Real x2, Real x3) {
 // NO!!!! Work out vector potential instead.
 
 
-KOKKOS_INLINE_FUNCTION
-static void CalculateToroidalBField(struct torus_pgen pgen,
-                                                  Real x1, Real x2, Real x3,
-                                                  Real *pB1, Real *pB2, Real *pB3) {
+// KOKKOS_INLINE_FUNCTION
+// static void CalculateToroidalBField(struct torus_pgen pgen,
+//                                                   Real x1, Real x2, Real x3,
+//                                                   Real *pB1, Real *pB2, Real *pB3) {
                                                   
-  Real r, theta, phi;
-  GetBoyerLindquistCoordinates(pgen, x1, x2, x3, &r, &theta, &phi);                                                
+//   Real r, theta, phi;
+//   GetBoyerLindquistCoordinates(pgen, x1, x2, x3, &r, &theta, &phi);                                                
 
-  Real sin_theta = sin(theta);
-  Real cos_theta = cos(theta);
-  Real sin_phi = sin(phi);
-  Real cos_phi = cos(phi);
-  Real sin_vartheta;
+//   Real sin_theta = sin(theta);
+//   Real cos_theta = cos(theta);
+//   Real sin_phi = sin(phi);
+//   Real cos_phi = cos(phi);
+//   Real sin_vartheta;
 
-  if (pgen.psi != 0.0) {
-    Real x = sin_theta * cos_phi;
-    Real y = sin_theta * sin_phi;
-    Real z = cos_theta;
-    Real varx = pgen.cos_psi * x - pgen.sin_psi * z;
-    Real vary = y;
-    sin_vartheta = sqrt(SQR(varx) + SQR(vary));
-  } else {
-    sin_vartheta = fabs(sin(theta));
-  }
+//   if (pgen.psi != 0.0) {
+//     Real x = sin_theta * cos_phi;
+//     Real y = sin_theta * sin_phi;
+//     Real z = cos_theta;
+//     Real varx = pgen.cos_psi * x - pgen.sin_psi * z;
+//     Real vary = y;
+//     sin_vartheta = sqrt(SQR(varx) + SQR(vary));
+//   } else {
+//     sin_vartheta = fabs(sin(theta));
+//   }
 
-  if (r >= pgen.r_edge) {
+//   if (r >= pgen.r_edge) {
 
-    // Determine if we are in the torus
-    Real rho;
-    Real gm1 = pgen.gamma_adi-1.0;
-    bool in_torus = false;
-    Real log_h = LogHAux(pgen, r, sin_vartheta) - pgen.log_h_edge;  // (FM 3.6)
-    if (log_h >= 0.0) {
-      in_torus = true;
-      Real ptot_over_rho = gm1/pgen.gamma_adi * (exp(log_h) - 1.0);
-      rho = pow(ptot_over_rho, 1.0/gm1) / pgen.rho_peak;
-    }
+//     // Determine if we are in the torus
+//     Real rho;
+//     Real gm1 = pgen.gamma_adi-1.0;
+//     bool in_torus = false;
+//     Real log_h = LogHAux(pgen, r, sin_vartheta) - pgen.log_h_edge;  // (FM 3.6)
+//     if (log_h >= 0.0) {
+//       in_torus = true;
+//       Real ptot_over_rho = gm1/pgen.gamma_adi * (exp(log_h) - 1.0);
+//       rho = pow(ptot_over_rho, 1.0/gm1) / pgen.rho_peak;
+//     }
     
-    Real varBph = 0;
+//     Real varBph = 0;
 
-    Real Bth = 0;
-    Real Bph = 0;
+//     Real Bth = 0;
+//     Real Bph = 0;
 
-    if (in_torus){
-      varBph = (rho/pgen.rho_max)-pgen.potential_cutoff;
-      varBph = fmax(Bph, 0.0);
-    }
+//     if (in_torus){
+//       varBph = (rho/pgen.rho_max)-pgen.potential_cutoff;
+//       varBph = fmax(Bph, 0.0);
+//     }
 
-    if (pgen.psi != 0.0) {
-      Real dvarphi_dtheta = -pgen.sin_psi * sin_phi / SQR(sin_vartheta);
-      Real dvarphi_dphi = sin_theta / SQR(sin_vartheta)
-          * (pgen.cos_psi * sin_theta - pgen.sin_psi * cos_theta * cos_phi);
-      Bth = dvarphi_dtheta * varBph;
-      Bph = dvarphi_dphi * varBph;
-    } else {
-      Bth = 0.0;
-      Bph = varBph;
-    }
-
-
+//     if (pgen.psi != 0.0) {
+//       Real dvarphi_dtheta = -pgen.sin_psi * sin_phi / SQR(sin_vartheta);
+//       Real dvarphi_dphi = sin_theta / SQR(sin_vartheta)
+//           * (pgen.cos_psi * sin_theta - pgen.sin_psi * cos_theta * cos_phi);
+//       Bth = dvarphi_dtheta * varBph;
+//       Bph = dvarphi_dphi * varBph;
+//     } else {
+//       Bth = 0.0;
+//       Bph = varBph;
+//     }
 
 
-  }
-}
+
+
+//   }
+// }
 
 } // namespace
 
