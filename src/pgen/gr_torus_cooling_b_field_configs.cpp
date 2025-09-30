@@ -521,7 +521,7 @@ void ProblemGenerator::UserProblem(ParameterInput *pin, const bool restart) {
             local_max = fmax(size.d_view(idx).dx2,local_max);
             local_max = fmax(size.d_view(idx).dx3,local_max);
           }
-        }, Kokkos::Min<Real>(max_dx));
+        }, Kokkos::Max<Real>(max_dx));
 
       #if MPI_PARALLEL_ENABLED
         MPI_Allreduce(MPI_IN_PLACE, &max_dx, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
