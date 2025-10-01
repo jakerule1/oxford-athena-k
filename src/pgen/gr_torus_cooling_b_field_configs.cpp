@@ -535,7 +535,7 @@ void ProblemGenerator::UserProblem(ParameterInput *pin, const bool restart) {
       Kokkos::realloc(CplxAmp_X2, N_field, N_field, N_field);
       Kokkos::realloc(CplxAmp_X3, N_field, N_field, N_field);
 
-      par_for("rand_b_field_complex_amps", DevExeSpace(), 0, N_field-1, 0, N_field-1, 0, N_field-1,
+      par_for("rand_b_field_complex_amps", DevExeSpace(), 0, N_field/2, 0, N_field-1, 0, N_field-1,
       KOKKOS_LAMBDA(int k, int j, int i){
 
         uint64_t state = static_cast<uint64_t>(i) + static_cast<uint64_t>(j) * N_field 
@@ -551,14 +551,38 @@ void ProblemGenerator::UserProblem(ParameterInput *pin, const bool restart) {
         int jj = j - N_field/2;
         int kk = k - N_field/2;
 
-        Real amplitude = pow((SQR(ii)+SQR(jj)+SQR(kk)+1.0),(-0.5*trs.potential_pspec_idx));
+        // Amplitudes from magnetic power spectrum index.
+        // umag \propto k^{-pspec_idx}
+        // B \propto k^{-pspec_idx/2}
+        // A \propto k^{-pspec_idx/2-1}  (B \propto k x A )
+        // A \propto (SQR(k))^{0.5(-pspec_idx/2-1)}
 
-        CplxAmp_X1(i,j,k) = Kokkos::complex<double>(amplitude*cos(phase1),
-                                                amplitude*sin(phase1));
-        CplxAmp_X2(i,j,k) = Kokkos::complex<double>(amplitude*cos(phase2),
-                                                amplitude*sin(phase2));
-        CplxAmp_X3(i,j,k) = Kokkos::complex<double>(amplitude*cos(phase3),
-                                                amplitude*sin(phase3));                                       
+        int k_pos = N_field/2 - kk;
+
+        Real amplitude = pow((SQR(ii)+SQR(jj)+SQR(kk)+1.0),(0.5*(-0.5*trs.potential_pspec_idx-1)));
+        if (kk==0 || (k==0 && (N_field % 2 == 0))){
+          CplxAmp_X1(i,j,k) = Kokkos::complex<double>(amplitude,
+                                              0.0);                                 
+          CplxAmp_X2(i,j,k) = Kokkos::complex<double>(amplitude,
+                                                  0.0);                                  
+          CplxAmp_X3(i,j,k) = Kokkos::complex<double>(amplitude,
+                                                  0.0);
+        }
+        else{
+          CplxAmp_X1(i,j,k) = Kokkos::complex<double>(amplitude*cos(phase1),
+                                                  -1.0*amplitude*sin(phase1));
+          CplxAmp_X1(i,j,k_pos) = Kokkos::complex<double>(amplitude*cos(phase1),
+                                          amplitude*sin(phase1));                                        
+          CplxAmp_X2(i,j,k) = Kokkos::complex<double>(amplitude*cos(phase2),
+                                                  -1.0*amplitude*sin(phase2));
+          CplxAmp_X2(i,j,k_pos) = Kokkos::complex<double>(amplitude*cos(phase2),
+                                                  amplitude*sin(phase2));                                      
+          CplxAmp_X3(i,j,k) = Kokkos::complex<double>(amplitude*cos(phase3),
+                                                  -1.0*amplitude*sin(phase3));
+          CplxAmp_X3(i,j,k_pos) = Kokkos::complex<double>(amplitude*cos(phase3),
+                                                  amplitude*sin(phase3));   
+        }
+                                                                                      
       }
       );
 
