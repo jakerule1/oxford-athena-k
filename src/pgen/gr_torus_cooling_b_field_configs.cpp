@@ -1568,12 +1568,14 @@ static void CalculateVectorPotentialInTiltedTorus(struct torus_pgen pgen,
       Real ptot_over_rho;
       Real log_h = LogHAux(pgen, r, sin_vartheta) - pgen.log_h_edge;  // (FM 3.6)
       if (log_h >= 0.0) {
-        in_torus = true;
         ptot_over_rho = gm1/pgen.gamma_adi * (exp(log_h) - 1.0);
         rho = pow(ptot_over_rho, 1.0/gm1) / pgen.rho_peak;
+        if (rho>pgen.potential_cutoff){
+          in_torus = true;
+        }
       }
       Real ath_tilt = 0.0;
-      if (rho>pgen.potential_cutoff){
+      if (in_torus){
         
         // Compute \int (rho - rho_cut) * det(g) * dr using trapezoidal rule
         // Keep fixed delta_r with a maximum of 100 samples
