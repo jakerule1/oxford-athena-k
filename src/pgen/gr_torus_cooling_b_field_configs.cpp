@@ -1573,7 +1573,7 @@ static void CalculateVectorPotentialInTiltedTorus(struct torus_pgen pgen,
         rho = pow(ptot_over_rho, 1.0/gm1) / pgen.rho_peak;
       }
       Real ath_tilt = 0.0;
-      if (in_torus){
+      if (rho>pgen.potential_cutoff){
         
         // Compute \int (rho - rho_cut) * det(g) * dr using trapezoidal rule
         // Keep fixed delta_r with a maximum of 100 samples
