@@ -1562,72 +1562,68 @@ static void CalculateVectorPotentialInTiltedTorus(struct torus_pgen pgen,
   } 
   else if (pgen.is_toroidal_field) {
     if (r >= pgen.r_edge) {
-      Real rho=0.0;
+      Real rho = 0.0;
       Real gm1 = pgen.gamma_adi-1.0;
-      bool in_torus = false;
+      // bool in_torus = false;
       Real ptot_over_rho;
       Real log_h = LogHAux(pgen, r, sin_vartheta) - pgen.log_h_edge;  // (FM 3.6)
       if (log_h >= 0.0) {
         ptot_over_rho = gm1/pgen.gamma_adi * (exp(log_h) - 1.0);
         rho = pow(ptot_over_rho, 1.0/gm1) / pgen.rho_peak;
-        if (rho>pgen.potential_cutoff){
-          in_torus = true;
-        }
+        // in_torus = true;
       }
       Real ath_tilt = 0.0;
-      if (in_torus){
-        
-        // Compute \int (rho - rho_cut) * det(g) * dr using trapezoidal rule
-        // Keep fixed delta_r with a maximum of 100 samples
 
-        Real torus_size = pgen.r_outer_edge - pgen.r_edge;
+      // Compute \int (rho - rho_cut) * det(g) * dr using trapezoidal rule
+      // Set delta_r so that there are 100 samples across the torus
 
-        int sample_N = static_cast<int>(std::round(100.0*(r-pgen.r_edge)/torus_size));
-        sample_N = max(sample_N,1);
+      Real torus_size = pgen.r_outer_edge - pgen.r_edge;
 
-        Real delta_r = (r-pgen.r_edge)/sample_N;
+      int sample_N = static_cast<int>(std::round(100.0*(r-pgen.r_edge)/torus_size));
+      sample_N = max(sample_N,1);
 
-        //Add endpoint first since rho is precomputed
+      Real delta_r = (r-pgen.r_edge)/sample_N;
 
-        Real integrand = fmax((rho/pgen.rho_max)-pgen.potential_cutoff,0.0);
-        integrand *= (SQR(r)+SQR(pgen.spin*cos_theta))*sin_theta;
+      //Add endpoint first since rho is precomputed
 
-        ath_tilt += 0.5*delta_r*integrand;
+      Real integrand = fmax((rho/pgen.rho_max)-pgen.potential_cutoff,0.0);
+      integrand *= (SQR(r)+SQR(pgen.spin*cos_theta))*sin_theta;
 
-        Real r_i;
+      ath_tilt += 0.5*delta_r*integrand;
 
-        // Loop from start point through the integration samples
+      Real r_i;
 
-        for (int i=0; i<sample_N; ++i){
-          r_i = i*delta_r + pgen.r_edge;
-          log_h = LogHAux(pgen, r_i, sin_vartheta) - pgen.log_h_edge;  // (FM 3.6)
-          if (log_h >= 0.0) {
-            ptot_over_rho = gm1/pgen.gamma_adi * (exp(log_h) - 1.0);
-            rho = pow(ptot_over_rho, 1.0/gm1) / pgen.rho_peak;
-          }
-          else{
-            rho = 0.0;
-          }
-          integrand = fmax((rho/pgen.rho_max)-pgen.potential_cutoff,0.0);
-          integrand *= (SQR(r_i)+SQR(pgen.spin*cos_theta))*sin_theta;
+      // Loop from start point through the integration samples
 
-          if (i==0){
-            ath_tilt += 0.5*delta_r*integrand;  //start point
-          }
-          else{ 
-            ath_tilt += delta_r*integrand; //interior samples
-          }
+      for (int i=0; i<sample_N; ++i){
+        r_i = i*delta_r + pgen.r_edge;
+        log_h = LogHAux(pgen, r_i, sin_vartheta) - pgen.log_h_edge;  // (FM 3.6)
+        if (log_h >= 0.0) {
+          ptot_over_rho = gm1/pgen.gamma_adi * (exp(log_h) - 1.0);
+          rho = pow(ptot_over_rho, 1.0/gm1) / pgen.rho_peak;
         }
-
-        if (pgen.psi != 0.0) {
-          Real dvartheta_dtheta = (pgen.cos_psi*sin_theta-pgen.sin_psi*cos_theta*cos_phi)/sin_vartheta;
-          Real dvartheta_dphi = pgen.sin_psi*sin_theta*sin_phi/sin_vartheta;
-          atheta = dvartheta_dtheta * ath_tilt;
-          aphi = dvartheta_dphi * ath_tilt;
-        } else {
-          atheta = ath_tilt;
-          aphi = 0.0;
+        else{
+          rho = 0.0;
         }
+        integrand = fmax((rho/pgen.rho_max)-pgen.potential_cutoff,0.0);
+        integrand *= (SQR(r_i)+SQR(pgen.spin*cos_theta))*sin_theta;
+
+        if (i==0){
+          ath_tilt += 0.5*delta_r*integrand;  //start point
+        }
+        else{ 
+          ath_tilt += delta_r*integrand; //interior samples
+        }
+      }
+
+      if (pgen.psi != 0.0) {
+        Real dvartheta_dtheta = (pgen.cos_psi*sin_theta-pgen.sin_psi*cos_theta*cos_phi)/sin_vartheta;
+        Real dvartheta_dphi = pgen.sin_psi*sin_theta*sin_phi/sin_vartheta;
+        atheta = dvartheta_dtheta * ath_tilt;
+        aphi = dvartheta_dphi * ath_tilt;
+      } else {
+        atheta = ath_tilt;
+        aphi = 0.0;
       }
     }
   }
