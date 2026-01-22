@@ -293,10 +293,10 @@ void IdealGRMHD::ConsToPrim(DvceArray5D<Real> &cons, const DvceFaceFld4D<Real> &
           for (int jj=jm1; jj<=jp1; ++jj) {
             for (int ii=im1; ii<=ip1; ++ii) {
               if ((gm1*prim(m,IEN,kk,jj,ii) > eos.pfloor) && !(excised)) {
-                // w.d  = w.d  + prim(m,IDN,kk,jj,ii);
-                // w.vx = w.vx + prim(m,IVX,kk,jj,ii);
-                // w.vy = w.vy + prim(m,IVY,kk,jj,ii);
-                // w.vz = w.vz + prim(m,IVZ,kk,jj,ii);
+                w.d  = w.d  + prim(m,IDN,kk,jj,ii);
+                w.vx = w.vx + prim(m,IVX,kk,jj,ii);
+                w.vy = w.vy + prim(m,IVY,kk,jj,ii);
+                w.vz = w.vz + prim(m,IVZ,kk,jj,ii);
                 w.e  = w.e  + prim(m,IEN,kk,jj,ii);
                 n_count += 1;
               } // endif over pfloor
@@ -306,27 +306,37 @@ void IdealGRMHD::ConsToPrim(DvceArray5D<Real> &cons, const DvceFaceFld4D<Real> &
 
         // Assign the fallback state
         if (n_count == 0) {
-          // w.d  = w0_old_(m,IDN,k,j,i);
-          // w.vx = w0_old_(m,IVX,k,j,i);
-          // w.vy = w0_old_(m,IVY,k,j,i);
-          // w.vz = w0_old_(m,IVZ,k,j,i);
+          w.d  = w0_old_(m,IDN,k,j,i);
+          w.vx = w0_old_(m,IVX,k,j,i);
+          w.vy = w0_old_(m,IVY,k,j,i);
+          w.vz = w0_old_(m,IVZ,k,j,i);
           w.e  = w0_old_(m,IEN,k,j,i);
         } else {
-          // w.d  = w.d/n_count;
-          // w.vx = w.vx/n_count;
-          // w.vy = w.vy/n_count;
-          // w.vz = w.vz/n_count;
+          w.d  = w.d/n_count;
+          w.vx = w.vx/n_count;
+          w.vy = w.vy/n_count;
+          w.vz = w.vz/n_count;
           w.e  = w.e/n_count;
         }
-        w.d = prim(m,IDN,k,j,i);
-        w.vx = prim(m,IVX,k,j,i);
-        w.vy = prim(m,IVY,k,j,i);
-        w.vz = prim(m,IVZ,k,j,i);
-        // prim(m,IDN,k,j,i) = w.d;
-        // prim(m,IVX,k,j,i) = w.vx;
-        // prim(m,IVY,k,j,i) = w.vy;
-        // prim(m,IVZ,k,j,i) = w.vz;
-        prim(m,IEN,k,j,i) = w.e;
+
+        // Check to see if averaged energy compatible with non-averaged density (strong energy condition)
+        if (prim(m,IDN,k,j,i) > eos.gamma*w.e){
+            // If compatible keep non-averaged density and velocities
+            w.d = prim(m,IDN,k,j,i);
+            w.vx = prim(m,IVX,k,j,i);
+            w.vy = prim(m,IVY,k,j,i);
+            w.vz = prim(m,IVZ,k,j,i);
+            // Swap in just the averaged internal energy since it is compatible
+            prim(m,IEN,k,j,i) = w.e; 
+        }
+        // Swap over all primitives if incompatible
+        else {
+          prim(m,IDN,k,j,i) = w.d;
+          prim(m,IVX,k,j,i) = w.vx;
+          prim(m,IVY,k,j,i) = w.vy;
+          prim(m,IVZ,k,j,i) = w.vz;
+          prim(m,IEN,k,j,i) = w.e;
+        }
 
         // } else if (smooth_flag_(m,k,j,i)) { // if extra smooth is needed
         //   prim(m,IDN,k,j,i) = w.d;
