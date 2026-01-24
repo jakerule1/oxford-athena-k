@@ -289,12 +289,15 @@ void IdealGRMHD::ConsToPrim(DvceArray5D<Real> &cons, const DvceFaceFld4D<Real> &
 
         // Add the primitives of valid adjacent cells
         int n_count = 0;
+        bool donor_excised = false;
         for (int kk=km1; kk<=kp1; ++kk) {
           for (int jj=jm1; jj<=jp1; ++jj) {
             for (int ii=im1; ii<=ip1; ++ii) {
-              bool donor_excised = false;
-              if (excision_floor_(m,kk,jj,ii)) {
-                donor_excised = true;
+              if (use_excise) {
+                donor_excised = false;
+                if (excision_floor_(m,kk,jj,ii)) {
+                  donor_excised = true;
+                }
               }
               if ((gm1*prim(m,IEN,kk,jj,ii) > eos.pfloor) && !(donor_excised)) {
                 w.d  = w.d  + prim(m,IDN,kk,jj,ii);
