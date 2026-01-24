@@ -292,7 +292,11 @@ void IdealGRMHD::ConsToPrim(DvceArray5D<Real> &cons, const DvceFaceFld4D<Real> &
         for (int kk=km1; kk<=kp1; ++kk) {
           for (int jj=jm1; jj<=jp1; ++jj) {
             for (int ii=im1; ii<=ip1; ++ii) {
-              if ((gm1*prim(m,IEN,kk,jj,ii) > eos.pfloor) && !(excised)) {
+              bool donor_excised = false;
+              if (excision_floor_(m,kk,jj,ii)) {
+                donor_excised = true;
+              }
+              if ((gm1*prim(m,IEN,kk,jj,ii) > eos.pfloor) && !(donor_excised)) {
                 w.d  = w.d  + prim(m,IDN,kk,jj,ii);
                 w.vx = w.vx + prim(m,IVX,kk,jj,ii);
                 w.vy = w.vy + prim(m,IVY,kk,jj,ii);
@@ -321,13 +325,13 @@ void IdealGRMHD::ConsToPrim(DvceArray5D<Real> &cons, const DvceFaceFld4D<Real> &
 
         // Check to see if averaged energy compatible with non-averaged density (strong energy condition)
         if (prim(m,IDN,k,j,i) > eos.gamma*w.e){
-            // If compatible keep non-averaged density and velocities
-            w.d = prim(m,IDN,k,j,i);
-            w.vx = prim(m,IVX,k,j,i);
-            w.vy = prim(m,IVY,k,j,i);
-            w.vz = prim(m,IVZ,k,j,i);
-            // Swap in just the averaged internal energy since it is compatible
-            prim(m,IEN,k,j,i) = w.e; 
+          // If compatible keep non-averaged density and velocities
+          w.d = prim(m,IDN,k,j,i);
+          w.vx = prim(m,IVX,k,j,i);
+          w.vy = prim(m,IVY,k,j,i);
+          w.vz = prim(m,IVZ,k,j,i);
+          // Swap in just the averaged internal energy since it is compatible
+          prim(m,IEN,k,j,i) = w.e; 
         }
         // Swap over all primitives if incompatible
         else {
