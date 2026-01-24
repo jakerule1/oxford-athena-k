@@ -267,13 +267,13 @@ void IdealGRMHD::ConsToPrim(DvceArray5D<Real> &cons, const DvceFaceFld4D<Real> &
       int ip1 = (i+1 > iu) ? iu : i+1;
 
       int pfloor_count = 0;
-      if (gm1*prim(m,IEN,k,j,i) <= eos.pfloor) pfloor_count+=1;
-      if (gm1*prim(m,IEN,km1,j,i) <= eos.pfloor) pfloor_count+=1;
-      if (gm1*prim(m,IEN,kp1,j,i) <= eos.pfloor) pfloor_count+=1;
-      if (gm1*prim(m,IEN,k,jm1,i) <= eos.pfloor) pfloor_count+=1;
-      if (gm1*prim(m,IEN,k,jp1,i) <= eos.pfloor) pfloor_count+=1;
-      if (gm1*prim(m,IEN,k,j,im1) <= eos.pfloor) pfloor_count+=1;
-      if (gm1*prim(m,IEN,k,j,ip1) <= eos.pfloor) pfloor_count+=1;
+      if ((gm1*prim(m,IEN,k,j,i) <= eos.pfloor) && !(excision_floor_(m,k,j,i))) pfloor_count+=1;
+      if ((gm1*prim(m,IEN,km1,j,i) <= eos.pfloor) && !(excision_floor_(m,km1,j,i))) pfloor_count+=1;
+      if ((gm1*prim(m,IEN,kp1,j,i) <= eos.pfloor) && !(excision_floor_(m,kp1,j,i))) pfloor_count+=1;
+      if ((gm1*prim(m,IEN,k,jm1,i) <= eos.pfloor) && !(excision_floor_(m,k,jm1,i))) pfloor_count+=1;
+      if ((gm1*prim(m,IEN,k,jp1,i) <= eos.pfloor) && !(excision_floor_(m,k,jp1,i))) pfloor_count+=1;
+      if ((gm1*prim(m,IEN,k,j,im1) <= eos.pfloor) && !(excision_floor_(m,k,j,im1))) pfloor_count+=1;
+      if ((gm1*prim(m,IEN,k,j,ip1) <= eos.pfloor) && !(excision_floor_(m,k,j,ip1))) pfloor_count+=1;
 
       // Smooth if local area contains 1 or 2 cells near the pressure floor 
       if (((pfloor_count>=1) && (pfloor_count<=2)) && !(excised)) { //jake
